@@ -4,7 +4,7 @@ from Bio import SeqIO
 '''
 Class for handling fasta files. It essentially generates random combinations
 of AA sequences from the specified years. Currently can only generate
-AA sequences from a winter > summer > winter combination. 
+AA sequences from a winter > summer > winter combination.
 '''
 class FastaSampler(object):
     def __init__(self, north_fasta, south_fasta,
@@ -27,13 +27,13 @@ class FastaSampler(object):
 
         for f in fasta_sequences:
             template = {
-                            'id': '',
-                            'year': '',
-                            'month': '',
-                            'day': '',
-                            'location': '',
-                            'seq': ''
-                             }
+                        'id': '',
+                        'year': '',
+                        'month': '',
+                        'day': '',
+                        'location': '',
+                        'seq': ''
+                         }
             desc = f.description
             desc_split = desc.split(' ')
 
@@ -108,6 +108,12 @@ class FastaSampler(object):
                     (sample['year'] == year and sample['month'] >= w_lower):
                 future_winter_seq.append(sample['seq'])
 
-        return [self.start + prev_winter_seq[i] + self.delim0 +
-                prev_summer_seq[i] + self.delim1 + future_winter_seq[i] +
-                self.end for i in range(N)]
+        # If we want the full sequence (for training) vs. if we only want
+        # the first two portions (for priming for generation).
+        if full:
+            return [self.start + prev_winter_seq[i] + self.delim0 +
+                    prev_summer_seq[i] + self.delim1 + future_winter_seq[i] +
+                    self.end for i in range(N)]
+        else:
+            return [self.start + prev_winter_seq[i] + self.delim0 +
+                    prev_summer_seq[i] + self.delim1 for i in range(N)]
