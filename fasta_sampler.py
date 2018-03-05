@@ -117,3 +117,31 @@ class FastaSampler(object):
         else:
             return [self.start + prev_winter_seq[i] + self.delim0 +
                     prev_summer_seq[i] + self.delim1 for i in range(N)]
+
+
+    def get_AA_variability(self, year, north=True):
+        if north:
+            data = self.north[year]
+        else:
+            data = self.south[year]
+        to_return = []
+        # to_return = [{}] * len(data[0]['seq'])
+        to_return = []
+        for i in range(len(data)):
+            sample = data[i]
+            for j in range(len(sample['seq'])):
+                if i == 0:
+                    to_return.append({})
+                if sample['seq'][j] not in to_return[j].keys():
+                    to_return[j][sample['seq'][j]] = 1
+                else:
+                    to_return[j][sample['seq'][j]] += 1
+            # break
+        return to_return
+
+
+
+
+
+
+pass
