@@ -118,25 +118,37 @@ class FastaSampler(object):
             return [self.start + prev_winter_seq[i] + self.delim0 +
                     prev_summer_seq[i] + self.delim1 for i in range(N)]
 
-
-    def get_AA_variability(self, year, north=True):
+    '''
+    Returns a dictionary where the keys are amino acids and the
+    values are a list of the count of that amino acid at the given
+    position across all samples.
+    '''
+    def get_AA_variability(self, year, north=True, plot=False):
         if north:
             data = self.north[year]
         else:
             data = self.south[year]
-        to_return = []
-        # to_return = [{}] * len(data[0]['seq'])
-        to_return = []
+
+        AAs = set(''.join([d['seq'] for d in data]))
+        to_return = {}
+        for aa in AAs:
+            to_return[aa] = [0] * len(data[0]['seq'])
+
         for i in range(len(data)):
             sample = data[i]
             for j in range(len(sample['seq'])):
-                if i == 0:
-                    to_return.append({})
-                if sample['seq'][j] not in to_return[j].keys():
-                    to_return[j][sample['seq'][j]] = 1
-                else:
-                    to_return[j][sample['seq'][j]] += 1
-            # break
+                aa = sample['seq'][j]
+                to_return[aa][j] += 1
+
+        if plot:
+            ind = np.arange(len(data[0]['seq']))
+            width = 0.35
+            prev = [0] * len(ind)
+            for aa, counts in to_return.items():
+                plt.bar(ind, counts, width, label=aa, bottom=prev)
+                prev += counts
+            plt.show()
+
         return to_return
 
 
