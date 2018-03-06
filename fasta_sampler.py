@@ -1,6 +1,9 @@
+from pdb import set_trace as bp
 import numpy as np
 from Bio import SeqIO
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -20,10 +23,11 @@ class FastaSampler(object):
         self.north = self.__parse_fasta_to_list(north_fasta)
         self.south = self.__parse_fasta_to_list(south_fasta)
 
-    def __parse_fasta_to_list(self, some_fasta, delim='>'):
+    def __parse_fasta_to_list(self, some_fasta, specified_len=566):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
         data = {}
         num_missing = 0
+        num_too_long = 0
         # Basic data structure for our samples.
 
         for f in fasta_sequences:
@@ -48,6 +52,10 @@ class FastaSampler(object):
                 num_missing += 1
                 continue
 
+            if len(f.seq) != specified_len:
+                num_too_long += 1
+                continue
+
             location = desc_split[1].split('/')[1]
 
             template['id'] = f.id
@@ -59,8 +67,10 @@ class FastaSampler(object):
 
             if year not in data.keys():
                 data[year] = []
+
             data[year].append(template)
         print('Missing data: {}'.format(num_missing))
+        print('Bad length data: {}'.format(num_too_long))
         return data
 
 
@@ -122,7 +132,7 @@ class FastaSampler(object):
     '''
     Returns a dictionary where the keys are amino acids and the
     values are a list of the count of that amino acid at the given
-    position across all samples.
+    position across all samples. Way less useful than the funciton below.
     '''
     def get_AA_counts_by_position(self, year, north=True, plot=False):
         if north:
@@ -152,6 +162,10 @@ class FastaSampler(object):
 
         return to_return
 
+
+    '''
+    Get pandas dataframe with counts of each AA by position.
+    '''
     def get_AA_counts_dataframe(self, year, north=True, plot=False):
         if north:
             data = self.north[year]
@@ -161,23 +175,24 @@ class FastaSampler(object):
         alphabet = ''.join(list(set(''.join([s['seq'] for s in data]))))
         all_seq = [s['seq'] for s in data]
         char_to_int = dict((c, i) for i, c in enumerate(alphabet))
-        int_to_char = dict((i, c) for i, c in enumerate(alphabet))
         integer_encoded = [[char_to_int[char] for char in d] for d in all_seq]
 
+        AAs = list(set(''.join([d['seq'] for d in data])))
+        to_return = np.zeros((len(data[0]['seq']), len(AAs)))
 
-        AAs = set(''.join([d['seq'] for d in data]))
-        to_return = pd.DataFrame(0, index=np.arange(len(data[0]['seq'])), columns=AAs)
         for i in range(len(data)):
-            sample = data[i]
-            for j in range(len(sample['seq'])):
-                aa = sample['seq'][j]
-                to_return[aa].loc[j] += 1
+            sample = data[i]['seq']
+            values = list(sample)
+            if i == 0:
+                label_encoder = LabelEncoder()
+                label_encoder.fit(list(AAs))
+                labs = label_encoder.classes_
+                onehot_encoder = OneHotEncoder(sparse=False, n_values=len(AAs))
+            integer_encoded = label_encoder.transform(values)
+            integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
+            if i == 0:
+                onehot_encoded = onehot_encoder.fit(integer_encoded)
+            onehot_encoded = onehot_encoder.transform(integer_encoded)
+            to_return += onehot_encoded
+        to_return = pd.DataFrame(to_return, index=np.arange(len(data[0]['seq'])), columns=labs)
         return to_return
-
-
-
-
-
-
-
-pass
