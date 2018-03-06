@@ -1,5 +1,6 @@
 import numpy as np
 from Bio import SeqIO
+import pandas as pd
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -123,7 +124,7 @@ class FastaSampler(object):
     values are a list of the count of that amino acid at the given
     position across all samples.
     '''
-    def get_AA_variability(self, year, north=True, plot=False):
+    def get_AA_counts_by_position(self, year, north=True, plot=False):
         if north:
             data = self.north[year]
         else:
@@ -150,6 +151,29 @@ class FastaSampler(object):
             plt.show()
 
         return to_return
+
+    def get_AA_counts_dataframe(self, year, north=True, plot=False):
+        if north:
+            data = self.north[year]
+        else:
+            data = self.south[year]
+
+        alphabet = ''.join(list(set(''.join([s['seq'] for s in data]))))
+        all_seq = [s['seq'] for s in data]
+        char_to_int = dict((c, i) for i, c in enumerate(alphabet))
+        int_to_char = dict((i, c) for i, c in enumerate(alphabet))
+        integer_encoded = [[char_to_int[char] for char in d] for d in all_seq]
+
+
+        AAs = set(''.join([d['seq'] for d in data]))
+        to_return = pd.DataFrame(0, index=np.arange(len(data[0]['seq'])), columns=AAs)
+        for i in range(len(data)):
+            sample = data[i]
+            for j in range(len(sample['seq'])):
+                aa = sample['seq'][j]
+                to_return[aa].loc[j] += 1
+        return to_return
+
 
 
 
