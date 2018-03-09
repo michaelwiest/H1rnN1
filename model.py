@@ -39,11 +39,13 @@ class RNN(nn.Module):
         x = F.relu(self.batchnorm3(self.conv5(x)))
         x = self.mp(F.relu(self.batchnorm3(self.conv6(x))))
 
+        x = x.transpose(1, 2).transpose(0, 1)
+        x, self.hidden = self.lstm(x, self.hidden)
         x = x.view(x.size(0), -1) #flatten for fc
         #print (x.size(1))
         x = F.relu(self.fc(x))
         x = self.fc2(x)
-        return F.log_softmax(x) #softmax classifier
+        return x, hidden
 
 net = RNN()
 
