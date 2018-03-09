@@ -14,7 +14,9 @@ vocab = fs.vocabulary
 
 use_gpu = torch.cuda.is_available()
 ex = add_cuda_to_variable(ex, use_gpu)[0]
-
+# ex = ex.type(torch.FloatTensor)
+# inp = torch.randn(10, 1, 1702)
+# print(inp.size())
 
 rnn = RNN(1, 10, len(vocab.keys()), 30, 100, use_gpu, bs)
 rnn.forward(ex, rnn.hidden)
