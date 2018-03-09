@@ -4,6 +4,7 @@ from Bio import SeqIO
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
+from helper import get_idx
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -13,21 +14,29 @@ AA sequences from a winter > summer > winter combination.
 class FastaSampler(object):
     def __init__(self, north_fasta, south_fasta,
                  start='$', end='%', delim0='&', delim1='@'):
-        self.handle_files(north_fasta, south_fasta)
         self.start = start
         self.end = end
         self.delim0 = delim0
         self.delim1 = delim1
+        self.handle_files(north_fasta, south_fasta)
 
     def handle_files(self, north_fasta, south_fasta):
         self.north = self.__parse_fasta_to_list(north_fasta)
         self.south = self.__parse_fasta_to_list(south_fasta)
+
+    def __generate_vocabulary(self, vocabulary):
+        vocabulary += self.start
+        vocabulary += self.end
+        vocabulary += self.delim0
+        vocabulary += self.delim1
+        self.vocabulary = get_idx(vocabulary)
 
     def __parse_fasta_to_list(self, some_fasta, specified_len=566):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
         data = {}
         num_missing = 0
         num_too_long = 0
+        seqs = set()
         # Basic data structure for our samples.
 
         for f in fasta_sequences:
@@ -57,13 +66,16 @@ class FastaSampler(object):
                 continue
 
             location = desc_split[1].split('/')[1]
+            seq = str(f.seq)
+            [seqs.add(s) for s in list(seq)]
 
             template['id'] = f.id
             template['year'] = year
             template['month'] = month
             template['day'] = day
             template['location'] = location
-            template['seq'] = str(f.seq)
+            template['seq'] = seq
+
 
             if year not in data.keys():
                 data[year] = []
@@ -71,21 +83,26 @@ class FastaSampler(object):
             data[year].append(template)
         print('Missing data: {}'.format(num_missing))
         print('Bad length data: {}'.format(num_too_long))
+        self.__generate_vocabulary(''.join(list(seqs)))
         return data
 
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year.
-    def generate_N_sample(self, N, year, full=True):
+    def generate_N_sample(self, N, year, full=True, to_num=True):
         if year not in self.north.keys() or year not in self.south.keys() or \
                 year + 1 not in self.north.keys() or year - 1 not in self.north.keys():
             raise ValueError('Specified year ({}) is not present in dataset.\n' \
                              'Maximum year is: {}'.format(year, max(self.north.keys()) - 1))
+
+        # Months bounding the flu season. w = winter. and s = summer for
+        # southern hemisphere.
         w_upper = 5
         w_lower = 10
-
         s_upper = 10
         s_lower = 5
+
+
         to_return = []
         prev_winter_seq = []
         prev_summer_seq = []
@@ -122,12 +139,18 @@ class FastaSampler(object):
         # If we want the full sequence (for training) vs. if we only want
         # the first two portions (for priming for generation).
         if full:
-            return [self.start + prev_winter_seq[i] + self.delim0 +
-                    prev_summer_seq[i] + self.delim1 + future_winter_seq[i] +
-                    self.end for i in range(N)]
+            to_return =  [self.start + prev_winter_seq[i] + self.delim0 +
+                        prev_summer_seq[i] + self.delim1 + future_winter_seq[i] +
+                        self.end for i in range(N)]
         else:
-            return [self.start + prev_winter_seq[i] + self.delim0 +
-                    prev_summer_seq[i] + self.delim1 for i in range(N)]
+            to_return = [self.start + prev_winter_seq[i] + self.delim0 +
+                        prev_summer_seq[i] + self.delim1 for i in range(N)]
+
+        if to_num:
+            to_return = [[self.vocabulary[c] for c in characters] for characters in to_return]
+
+        return to_return
+
 
     '''
     Returns a dictionary where the keys are amino acids and the
