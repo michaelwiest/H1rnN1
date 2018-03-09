@@ -26,7 +26,7 @@ class RNN(nn.Module):
         batch_size = inputs.size(1)
         print(inputs.shape)
         # Turn (seq_len x batch_size x input_size) into (batch_size x input_size x seq_len) for CNN
-        inputs = inputs.transpose(0, 1).transpose(1, 2)
+        # inputs = inputs.transpose(0, 1).transpose(1, 2)
 
         # Run through Conv1d and Pool1d layers
         print(inputs.shape)

@@ -13,8 +13,8 @@ vocab = fs.vocabulary
 
 
 use_gpu = torch.cuda.is_available()
-ex = add_cuda_to_variable(ex, use_gpu)
+ex = add_cuda_to_variable(ex, use_gpu)[0]
 
 
 rnn = RNN(1, 10, len(vocab.keys()), 30, 100, use_gpu, bs)
-rnn.forward(ex[0], rnn.hidden)
+rnn.forward(ex, rnn.hidden)
