@@ -24,13 +24,11 @@ class RNN(nn.Module):
 
     def forward(self, inputs, hidden):
         batch_size = inputs.size(1)
-        print(inputs.shape)
         inputs = Variable(inputs.data.type(torch.FloatTensor))
         # Turn (seq_len x batch_size x input_size) into (batch_size x input_size x seq_len) for CNN
         # inputs = inputs.transpose(0, 1).transpose(1, 2)
 
         # Run through Conv1d and Pool1d layers
-        print(inputs.shape)
         c = self.c1(inputs)
         # c = self.c2(p)
 
@@ -40,8 +38,8 @@ class RNN(nn.Module):
         # p = F(p)
         output, hidden = self.lstm(p, hidden)
         conv_seq_len = output.size(0)
-        output = output.view(conv_seq_len * batch_size, -1) # Treating (conv_seq_len x batch_size) as batch_size for linear layer
-        output = self.out(F.ReLU(output))
+        # output = output.view(conv_seq_len * batch_size, -1) # Treating (conv_seq_len x batch_size) as batch_size for linear layer
+        output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return output, hidden
 
