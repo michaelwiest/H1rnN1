@@ -37,7 +37,9 @@ class RNN(nn.Module):
 
     def forward(self, inputs, hidden):
         batch_size = inputs.size(1)
-        inputs = Variable(inputs.data.type(torch.FloatTensor))
+
+        # Need this here to get the datatypes to work for some reason.
+        inputs = add_cuda_to_variable(Variable(inputs.data.type(torch.FloatTensor)), self.use_gpu)
         # Turn (seq_len x batch_size x input_size) into (batch_size x input_size x seq_len) for CNN
         # inputs = inputs.transpose(0, 1).transpose(1, 2)
 
