@@ -122,10 +122,10 @@ class RNN(nn.Module):
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
                     outputs_val = outputs_val[1:, :, :]
-                    targets = targets.transpose(0, 2).transpose(1, 2).long()
+                    val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
-                        val_loss += loss_function(outputs_val[:, bat, :], val_targets[:, bat, :].squeeze(1))
+                        val_loss += loss_function(outputs_val[:, 1, :], val_targets[:, 1, :].squeeze(1))
                     val_loss_vec.append(val_loss.data[0] / self.batch_size)
                     train_loss_vec.append(loss.data[0] / self.batch_size)
                     print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
