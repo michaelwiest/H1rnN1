@@ -105,7 +105,7 @@ class RNN(nn.Module):
                 loss = 0
                 # print(outputs[1:, :, :].shape)
                 # print(targets.transpose(0,2).transpose(1,2).shape)
-                outputs = outputs[1:, :, :]
+                outputs = outputs[:, :, :]
                 targets = targets.transpose(0, 2).transpose(1, 2).long()
                 # print(targets)
                 for bat in range(batch_size):
