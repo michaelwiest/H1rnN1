@@ -77,10 +77,7 @@ class RNN(nn.Module):
 
         self.batch_size = batch_size
 
-        print(self.use_gpu)
-
         if self.use_gpu:
-            print('calling cuda on self.')
             self.cuda()
 
         loss_function = nn.CrossEntropyLoss()
@@ -100,7 +97,6 @@ class RNN(nn.Module):
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size)
                 train = add_cuda_to_variable(train, self.use_gpu)
-                print(train)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
                 self.zero_grad()
                 self.__init_hidden()
@@ -109,6 +105,8 @@ class RNN(nn.Module):
                 loss = 0
                 # print(outputs[1:, :, :].shape)
                 # print(targets.transpose(0,2).transpose(1,2).shape)
+                print(outputs.shape)
+                print(targets.shape)
                 for bat in range(batch_size):
                     loss += loss_function(outputs[1:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
