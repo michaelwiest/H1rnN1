@@ -3,20 +3,27 @@ from RNN import *
 from helper import *
 
 
-# with open('data/HA_n_2010_2018.fa', 'r') as d:
-#     all_data = d.read()
-bs = 10
+batch_size = 10
+kernel_size = 30
+lstm_hidden_units = 100
+num_filters = 10
+
+# Build the data handler object.
 fs = FastaSampler('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
-ex = fs.generate_N_sample(bs, 2013)
-print(len(ex[0]))
+# Assign the validation years.
+fs.set_train_val_years([2016, 2017])
 vocab = fs.vocabulary
 
+# for y, l in fs.north.items():
+#     print(y)
+#     seqs = [obj['seq'] for obj in l]
+#     print(len(set(seqs)))
+#     print(len((seqs)))
+#     print('--')
 
 use_gpu = torch.cuda.is_available()
-ex = add_cuda_to_variable(ex, use_gpu)[0]
-# ex = ex.type(torch.FloatTensor)
-# inp = torch.randn(10, 1, 1702)
-# print(inp.size())
 
-rnn = RNN(1, 10, len(vocab.keys()), 30, 100, use_gpu, bs)
-rnn.forward(ex, rnn.hidden)
+rnn = RNN(1, num_filters, len(vocab.keys()), kernel_size, lstm_hidden_units,
+          use_gpu, batch_size)
+
+train_loss, val_loss = rnn.train(fs, 30, 2, 0.001)

@@ -13,22 +13,28 @@ AA sequences from a winter > summer > winter combination.
 '''
 class FastaSampler(object):
     def __init__(self, north_fasta, south_fasta,
-                 start='$', end='%', delim0='&', delim1='@'):
+                 start='$', end='%', delim0='&', delim1='@', pad_char='`'):
         self.start = start
         self.end = end
         self.delim0 = delim0
         self.delim1 = delim1
+        self.pad_char = pad_char
         self.handle_files(north_fasta, south_fasta)
+        self.train_years = None
+        self.validation_years = None
 
     def handle_files(self, north_fasta, south_fasta):
-        self.north = self.__parse_fasta_to_list(north_fasta)
-        self.south = self.__parse_fasta_to_list(south_fasta)
+        self.north, v1 = self.__parse_fasta_to_list(north_fasta)
+        self.south, v2 = self.__parse_fasta_to_list(south_fasta)
+        vocab_temp = ''.join(list(set(list(v1) + list(v2))))
+        self.__generate_vocabulary(vocab_temp)
 
     def __generate_vocabulary(self, vocabulary):
         vocabulary += self.start
         vocabulary += self.end
         vocabulary += self.delim0
         vocabulary += self.delim1
+        vocabulary += self.pad_char
         self.vocabulary = get_idx(vocabulary)
 
     def __parse_fasta_to_list(self, some_fasta, specified_len=566):
@@ -83,17 +89,44 @@ class FastaSampler(object):
             data[year].append(template)
         print('Missing data: {}'.format(num_missing))
         print('Bad length data: {}'.format(num_too_long))
-        self.__generate_vocabulary(''.join(list(seqs)))
-        return data
+        # self.__generate_vocabulary(''.join(list(seqs)))
+        return data, ''.join(list(seqs))
 
+    def set_train_val_years(self, validation):
+        all_years = self.north.keys()
+        self.train_years = list(set(all_years) - set(validation))
+        self.validation_years = list(set(all_years) - set(self.train_years))
+
+        # Get rid of first year because it actually can't be sampled From
+        # Because there is no earlier year.
+        self.train_years.sort()
+        self.train_years = self.train_years[1:]
+        self.validation_years.sort()
+        self.validation_years = self.validation_years[:-1]
+
+    def generate_N_random_samples_and_targets(self, N, padding=0, group='train'):
+        if self.train_years is None:
+            raise ValueError('Please set train and validation years first')
+        output = []
+
+        while len(output) < N:
+            num_samples = np.random.randint(N - len(output) + 1)
+            if group.lower() == 'train':
+                year = self.train_years[np.random.randint(len(self.train_years))]
+            elif group.lower() == 'validation':
+                year = self.validation_years[np.random.randint(len(self.validation_years))]
+            output += self.generate_N_sample_per_year(num_samples, year, padding=padding)
+
+        return output, [o[padding:] for o in output]
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year.
-    def generate_N_sample(self, N, year, full=True, to_num=True):
+    def generate_N_sample_per_year(self, N, year, full=True, to_num=True,
+                                   padding=0):
         if year not in self.north.keys() or year not in self.south.keys() or \
                 year + 1 not in self.north.keys() or year - 1 not in self.north.keys():
             raise ValueError('Specified year ({}) is not present in dataset.\n' \
-                             'Maximum year is: {}'.format(year, max(self.north.keys()) - 1))
+                             'Maximum year is: {}'.format(year, max(self.north.keys())))
 
         # Months bounding the flu season. w = winter. and s = summer for
         # southern hemisphere.
@@ -139,13 +172,15 @@ class FastaSampler(object):
         # If we want the full sequence (for training) vs. if we only want
         # the first two portions (for priming for generation).
         if full:
-            to_return =  [self.start + prev_winter_seq[i] + self.delim0 +
+            to_return = [self.start + prev_winter_seq[i] + self.delim0 +
                         prev_summer_seq[i] + self.delim1 + future_winter_seq[i] +
                         self.end for i in range(N)]
         else:
             to_return = [self.start + prev_winter_seq[i] + self.delim0 +
                         prev_summer_seq[i] + self.delim1 for i in range(N)]
 
+        if padding > 0:
+            to_return = [padding * self.pad_char + tr for tr in to_return]
         if to_num:
             to_return = [[self.vocabulary[c] for c in characters] for characters in to_return]
 
