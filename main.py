@@ -3,13 +3,15 @@ from RNN import *
 from helper import *
 
 
+batch_size = 10
+kernel_size = 30
+lstm_hidden_units = 100
+num_filters = 10
 
-# with open('data/HA_n_2010_2018.fa', 'r') as d:
-#     all_data = d.read()
-bs = 10
+# Build the data handler object.
 fs = FastaSampler('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
+# Assign the validation years.
 fs.set_train_val_years([2016, 2017])
-ex = fs.generate_N_sample_per_year(bs, 2016)
 vocab = fs.vocabulary
 
 # for y, l in fs.north.items():
@@ -19,21 +21,9 @@ vocab = fs.vocabulary
 #     print(len((seqs)))
 #     print('--')
 
-
-
 use_gpu = torch.cuda.is_available()
 
+rnn = RNN(1, num_filters, len(vocab.keys()), kernel_size, lstm_hidden_units,
+          use_gpu, batch_size)
 
-# inp = torch.randn(10, 1, 1702)
-# print(inp.size())
-kernel_size = 30
-# ex, t = fs.generate_N_random_samples_and_targets(2, padding=kernel_size)
-# print(len(t[0]))
-# ex = add_cuda_to_variable(ex, use_gpu)
-# ex = ex.type(torch.FloatTensor)
-rnn = RNN(1, 10, len(vocab.keys()), kernel_size, 100, use_gpu, bs)
-
-# print(fs.generate_train_samples(2, 'validation'))
-# o = rnn.forward(ex, rnn.hidden)
-# print(o)
 train_loss, val_loss = rnn.train(fs, 30, 2, 0.001)

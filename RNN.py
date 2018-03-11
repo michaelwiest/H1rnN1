@@ -38,11 +38,6 @@ class RNN(nn.Module):
     def forward(self, inputs, hidden):
         batch_size = inputs.size(1)
 
-        # Need this here to get the datatypes to work for some reason.
-        # inputs = add_cuda_to_variable(Variable(inputs.data.type(torch.FloatTensor)), self.use_gpu)
-        # Turn (seq_len x batch_size x input_size) into (batch_size x input_size x seq_len) for CNN
-        # inputs = inputs.transpose(0, 1).transpose(1, 2)
-
         # Run through Conv1d and Pool1d layers
         c = self.c1(inputs)
         # c = self.c2(p)
@@ -81,7 +76,6 @@ class RNN(nn.Module):
             self.cuda()
 
         loss_function = nn.CrossEntropyLoss()
-        # Try Adagrad & RMSProp
         optimizer = optim.SGD(self.parameters(), lr=lr)
 
         # For logging the data for plotting
@@ -91,29 +85,35 @@ class RNN(nn.Module):
         for epoch in range(epochs):
 
             '''
-            Visit each possible example once. Can maybe tweak this to be more
-            stochastic.
+            The number of steps to do between epochs pretty arbitrary.
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
+                # Get the samples and make them cuda.
                 train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size)
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
+
                 self.zero_grad()
                 self.__init_hidden()
+                loss = 0
+
+                # Do a forward pass.
                 outputs = self.forward(train, self.hidden)
 
-                loss = 0
-                # print(outputs[1:, :, :].shape)
-                # print(targets.transpose(0,2).transpose(1,2).shape)
+                # Need to skip the first entry in the predicted elements.
+                # this might need to get switched to:
+                # outputs = outputs[:-1, :, :]
+                # Basically it has one to many elements to compare with the loss.
                 outputs = outputs[1:, :, :]
+                # reshape the targets to match.
                 targets = targets.transpose(0, 2).transpose(1, 2).long()
-                # print(targets)
+
                 for bat in range(batch_size):
                     loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
                 optimizer.step()
 
-                if iterate % 100 == 0:
+                if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
                     val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size, group='validation')
                     val = add_cuda_to_variable(val, self.use_gpu)
