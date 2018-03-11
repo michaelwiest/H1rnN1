@@ -105,8 +105,8 @@ class RNN(nn.Module):
                 loss = 0
                 # print(outputs[1:, :, :].shape)
                 # print(targets.transpose(0,2).transpose(1,2).shape)
-                print(outputs.shape)
-                print(targets.shape)
+                print(outputs)
+                print(targets)
                 for bat in range(batch_size):
                     loss += loss_function(outputs[1:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
