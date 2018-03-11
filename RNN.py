@@ -105,23 +105,24 @@ class RNN(nn.Module):
                 loss = 0
                 # print(outputs[1:, :, :].shape)
                 # print(targets.transpose(0,2).transpose(1,2).shape)
-                outputs = outputs[:, :, :]
+                outputs = outputs[1:, :, :]
                 targets = targets.transpose(0, 2).transpose(1, 2).long()
                 # print(targets)
                 for bat in range(batch_size):
-                    loss += loss_function(outputs[1:, bat, :], targets[:, bat, :].squeeze(1))
+                    loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
                 optimizer.step()
 
                 if iterate % 2000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    val_indices = random.sample(possible_val_indices, self.batch_size)
-                    val_inputs, val_targets = self.__convert_examples_to_targets_and_slices(val_data, val_indices, seq_len, ex_idx)
+                    val, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size, group='validaiton')
+                    val = add_cuda_to_variable(train, self.use_gpu)
+                    targets = add_cuda_to_variable(targets, self.use_gpu)
 
-                    val_inputs = add_cuda_to_variable(val_inputs, self.use_gpu)
-                    val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
                     self.__init_hidden()
-                    outputs_val = self.__forward(val_inputs)
+                    outputs_val = self.forward(val)
+                    outputs_val = outputs_val[1:, :, :]
+                    targets = targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
                         val_loss += loss_function(outputs_val[:,1,:], val_targets[:,1,:].squeeze(1))
