@@ -115,9 +115,9 @@ class RNN(nn.Module):
 
                 if iterate % 2000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    val, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size, group='validation')
+                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size, group='validation')
                     val = add_cuda_to_variable(val, self.use_gpu)
-                    targets = add_cuda_to_variable(targets, self.use_gpu)
+                    val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
 
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
@@ -125,7 +125,7 @@ class RNN(nn.Module):
                     targets = targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
-                        val_loss += loss_function(outputs_val[:,1,:], val_targets[:,1,:].squeeze(1))
+                        val_loss += loss_function(outputs_val[:, bat, :], val_targets[:, bat, :].squeeze(1))
                     val_loss_vec.append(val_loss.data[0] / self.batch_size)
                     train_loss_vec.append(loss.data[0] / self.batch_size)
                     print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
