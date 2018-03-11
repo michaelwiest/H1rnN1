@@ -23,9 +23,9 @@ def add_cuda_to_variable(data_nums, is_gpu):
         tensor = tensor.unsqueeze_(0)
     tensor = tensor.unsqueeze_(2)
     if is_gpu:
-        return Variable(tensor.cuda())
+        return Variable(tensor.cuda())[0]
     else:
-        return Variable(tensor)
+        return Variable(tensor)[0]
 
 # returns prediction based on probabilites
 def flip_coin(probabilities, is_gpu):
