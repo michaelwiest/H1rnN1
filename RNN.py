@@ -95,6 +95,7 @@ class RNN(nn.Module):
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size)
                 train = add_cuda_to_variable(train, self.use_gpu)
+                print(train)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
                 self.zero_grad()
                 self.__init_hidden()
