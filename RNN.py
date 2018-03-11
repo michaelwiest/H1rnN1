@@ -127,4 +127,3 @@ class RNN(nn.Module):
             print('Completed Epoch ' + str(epoch))
 
         return train_loss_vec, val_loss_vec
-        
