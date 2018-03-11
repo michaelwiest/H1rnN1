@@ -75,7 +75,10 @@ class RNN(nn.Module):
 
         self.batch_size = batch_size
 
+        print(self.use_gpu)
+
         if self.use_gpu:
+            print('calling cuda on self.')
             self.cuda()
 
         loss_function = nn.CrossEntropyLoss()
