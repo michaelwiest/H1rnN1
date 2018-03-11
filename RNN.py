@@ -113,7 +113,7 @@ class RNN(nn.Module):
                 loss.backward()
                 optimizer.step()
 
-                if iterate % 2000 == 0:
+                if iterate % 100 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
                     val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size, group='validation')
                     val = add_cuda_to_variable(val, self.use_gpu)
