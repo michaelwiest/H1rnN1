@@ -116,7 +116,7 @@ class RNN(nn.Module):
                 if iterate % 2000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
                     val, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size, group='validation')
-                    val = add_cuda_to_variable(train, self.use_gpu)
+                    val = add_cuda_to_variable(val, self.use_gpu)
                     targets = add_cuda_to_variable(targets, self.use_gpu)
 
                     self.__init_hidden()
