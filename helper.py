@@ -18,7 +18,7 @@ def avg_len_music_file(data, ch):
     return int(np.mean(avg_len))
 
 def add_cuda_to_variable(data_nums, is_gpu):
-    tensor = torch.LongTensor(data_nums)
+    tensor = torch.FloatTensor(data_nums)
     if isinstance(data_nums, list):
         tensor = tensor.unsqueeze_(0)
     tensor = tensor.unsqueeze_(2)
