@@ -104,7 +104,7 @@ class FastaSampler(object):
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
 
-    def generate_N_random_samples_and_targets(self, N, group='train', padding=0):
+    def generate_N_random_samples_and_targets(self, N, padding=0, group='train'):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []

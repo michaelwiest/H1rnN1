@@ -3,6 +3,7 @@ from RNN import *
 from helper import *
 
 
+
 # with open('data/HA_n_2010_2018.fa', 'r') as d:
 #     all_data = d.read()
 bs = 10
@@ -26,9 +27,9 @@ use_gpu = torch.cuda.is_available()
 # inp = torch.randn(10, 1, 1702)
 # print(inp.size())
 kernel_size = 30
-ex, t = fs.generate_N_random_samples_and_targets(2, padding=kernel_size)
-print(len(t[0]))
-ex = add_cuda_to_variable(ex, use_gpu)
+# ex, t = fs.generate_N_random_samples_and_targets(2, padding=kernel_size)
+# print(len(t[0]))
+# ex = add_cuda_to_variable(ex, use_gpu)
 # ex = ex.type(torch.FloatTensor)
 rnn = RNN(1, 10, len(vocab.keys()), kernel_size, 100, use_gpu, bs)
 

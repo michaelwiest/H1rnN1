@@ -1,7 +1,17 @@
-import torch
-from torch import nn
+from __future__ import print_function
+import torch.autograd as autograd
 from torch.autograd import Variable
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
+import torchvision
+import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
+import random
+import pdb
+import numpy as np
+from helper import *
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
@@ -61,7 +71,6 @@ class RNN(nn.Module):
 
 
     def train(self, fasta_sampler, batch_size, epochs, lr, samples_per_epoch=100000):
-        ex_size = len(examples)
         np.random.seed(1)
 
         self.batch_size = batch_size
@@ -78,13 +87,6 @@ class RNN(nn.Module):
         val_loss_vec = []
 
         for epoch in range(epochs):
-            #get random slice
-            # possible_example_indices = range(len(training_data))             #Idx of training examples
-            # possible_slice_starts = [range(len(ex)) for ex in training_data] #len of each example
-            # possible_val_indices = range(len(val_data))                      #Idx of val examples
-            # after going through all of a , will have gone through all possible 30
-            # character slices
-            # iterate = 0
 
             '''
             Visit each possible example once. Can maybe tweak this to be more
@@ -92,17 +94,17 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size)
-                train = add_cuda_to_variable(train, use_gpu)
-                targets = add_cuda_to_variable(targets, use_gpu)
+                train = add_cuda_to_variable(train, self.use_gpu)
+                targets = add_cuda_to_variable(targets, self.use_gpu)
                 self.zero_grad()
                 self.__init_hidden()
-                outputs = self.__forward(train)
+                outputs = self.forward(train, self.hidden)
 
                 loss = 0
-                print(outputs.shape)
-                print(targets.shape)
+                # print(outputs[1:, :, :].shape)
+                # print(targets.transpose(0,2).transpose(1,2).shape)
                 for bat in range(batch_size):
-                    loss += loss_function(outputs[:,bat,:], targets[:,bat,:].squeeze(1))
+                    loss += loss_function(outputs[1:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
                 optimizer.step()
 
