@@ -1,6 +1,7 @@
 from fasta_sampler import *
 from RNN import *
 from helper import *
+import IPython
 
 
 # with open('data/HA_n_2010_2018.fa', 'r') as d:

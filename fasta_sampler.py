@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from helper import get_idx
+import IPython
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -101,7 +102,6 @@ class FastaSampler(object):
         w_lower = 10
         s_upper = 10
         s_lower = 5
-
 
         to_return = []
         prev_winter_seq = []
