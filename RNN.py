@@ -39,7 +39,7 @@ class RNN(nn.Module):
 
         self.convs = [self.c1, self.c2]
 
-        self.lstm = nn.LSTM(len(convs) * num_filters, lstm_hidden, n_layers, dropout=0.01)
+        self.lstm = nn.LSTM(len(self.convs) * num_filters, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
