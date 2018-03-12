@@ -145,21 +145,21 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer_input)
         # build hidden layer
-        _ = self.__forward(add_cuda_to_variable(primer_input[:-1], self.use_gpu))
+        _ = self.forward(add_cuda_to_variable(primer_input[:-1], self.use_gpu))
 
         inp = add_cuda_to_variable([primer_input[-1]], self.use_gpu)
         self.seq_len = 1
         predicted = list(primer_input)
         if predict_len is not None:
             for p in range(predict_len):
-                output = self.__forward(inp)
+                output = self.forward(inp)
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 predicted.append(flip_coin(soft_out, self.use_gpu))
                 inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
 
         else:
             while end_found == False:
-                output = self.__forward(inp)
+                output = self.forward(inp)
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
