@@ -45,6 +45,7 @@ class RNN(nn.Module):
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
+
         output, self.hidden = self.lstm(p, hidden)
         conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
