@@ -29,7 +29,7 @@ class RNN(nn.Module):
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size)
+        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=kernel_size)
         # self.c2 = nn.Conv1d(hidden_size, hidden_size, 1)
         self.lstm = nn.LSTM(num_filters, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
@@ -86,7 +86,9 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size)
+                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size
+                                                                                    # , self.kernel_size
+                                                                                    )
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
 
@@ -101,7 +103,8 @@ class RNN(nn.Module):
                 # this might need to get switched to:
                 # outputs = outputs[:-1, :, :]
                 # Basically it has one to many elements to compare with the loss.
-                outputs = outputs[1:, :, :]
+                outputs = outputs[1:-self.kernel_size, :, :]
+                print(outputs)
                 # reshape the targets to match.
                 targets = targets.transpose(0, 2).transpose(1, 2).long()
 
@@ -112,7 +115,9 @@ class RNN(nn.Module):
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size, group='validation')
+                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size
+                                                                                          # , self.kernel_size
+                                                                                          , group='validation')
                     val = add_cuda_to_variable(val, self.use_gpu)
                     val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
 
