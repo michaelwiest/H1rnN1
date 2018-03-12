@@ -17,12 +17,6 @@ fs = FastaSampler('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
 fs.set_train_val_years([2016, 2017])
 vocab = fs.vocabulary
 
-# for y, l in fs.north.items():
-#     print(y)
-#     seqs = [obj['seq'] for obj in l]
-#     print(len(set(seqs)))
-#     print(len((seqs)))
-#     print('--')
 
 use_gpu = torch.cuda.is_available()
 
