@@ -30,9 +30,9 @@ class RNN(nn.Module):
         self.batch_size = batch_size
 
         self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=kernel_size)
-        p1 = kernel_size
+        self.p1 = kernel_size
         dilation = 1
-        p2 = kernel_size + (kernel_size - 1) * dilation
+        self.p2 = kernel_size + (kernel_size - 1) * dilation
         self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
                             dilation=dilation,
                             padding=p2)
@@ -44,8 +44,8 @@ class RNN(nn.Module):
         batch_size = inputs.size(1)
 
         # Run through Conv1d and Pool1d layers
-        c1 = self.c1(inputs)[1:-p1, :, :]
-        c2 = self.c2(inputs)[1:-p2, :, :]
+        c1 = self.c1(inputs)[1:-self.p1, :, :]
+        c2 = self.c2(inputs)[1:-self.p2, :, :]
         # c = self.c2(p)
         c = torch.cat(c1, 1)
         c = torch.cat(c2, 1)
