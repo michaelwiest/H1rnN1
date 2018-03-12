@@ -125,7 +125,7 @@ class RNN(nn.Module):
 
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
-                    outputs_val = outputs_val[1:, :, :]
+                    outputs_val = outputs_val[1:-self.kernel_size, :, :]
                     val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
