@@ -18,14 +18,14 @@ def avg_len_music_file(data, ch):
     return int(np.mean(avg_len))
 
 def add_cuda_to_variable(data_nums, is_gpu):
-    tensor = torch.LongTensor(data_nums)
+    tensor = torch.FloatTensor(data_nums)
     if isinstance(data_nums, list):
         tensor = tensor.unsqueeze_(0)
     tensor = tensor.unsqueeze_(2)
     if is_gpu:
-        return Variable(tensor.cuda())
+        return Variable(tensor.cuda())[0]
     else:
-        return Variable(tensor)
+        return Variable(tensor)[0]
 
 # returns prediction based on probabilites
 def flip_coin(probabilities, is_gpu):
