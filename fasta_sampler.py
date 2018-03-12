@@ -99,15 +99,12 @@ class FastaSampler(object):
         self.train_years = list(set(all_years) - set(validation))
         self.validation_years = list(set(all_years) - set(self.train_years))
 
-        IPython.embed()
         # Get rid of first year because it actually can't be sampled From
         # Because there is no earlier year.
         self.train_years.sort()
         self.train_years = self.train_years[1:]
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
-
-        IPython.embed()
 
     def generate_N_random_samples_and_targets(self, N, padding=0, group='train'):
         if self.train_years is None:

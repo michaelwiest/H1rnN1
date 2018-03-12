@@ -12,6 +12,7 @@ import random
 import pdb
 import numpy as np
 from helper import *
+import IPython
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
@@ -50,6 +51,8 @@ class RNN(nn.Module):
         # Run through Convolutional layers
         outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         c = torch.cat([out for out in outs], 1)
+
+        IPython.embed()
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
@@ -104,7 +107,10 @@ class RNN(nn.Module):
                 loss = 0
 
                 # Do a forward pass.
+                IPython.embed()
                 outputs = self.forward(train, self.hidden)
+                IPython.embed()
+
                 print(outputs)
                 # Need to skip the first entry in the predicted elements.
                 # and also ignore all the end elements because theyre just
