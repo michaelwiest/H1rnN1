@@ -23,20 +23,18 @@ class RNN(nn.Module):
         self.output_size = output_size # Number of AAs
         self.n_layers = n_layers # Defaults to one.
 
-        if kernel_size % 2 != 0:
-            raise ValueError('Please supply an even number for kernel size')
         self.kernel_size = kernel_size
         self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        self.p1 = kernel_size
-        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=self.p1)
-        dilation = 2
-        self.p2 = kernel_size + (kernel_size - 1) * dilation
+        p1 = kernel_size
+        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=p1)
+        dilation = 1
+        p2 = kernel_size + (kernel_size - 1) * dilation
         self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
                             dilation=dilation,
-                            padding=self.p2)
+                            padding=p2)
 
         self.convs = [self.c1, self.c2]
 
@@ -48,7 +46,8 @@ class RNN(nn.Module):
         batch_size = inputs.size(1)
         num_elements = inputs.size(2)
 
-        # Run through Convolutional layers
+        # Run through Convolutional layers. Chomp elements so our output
+        # size matches our labels.
         outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         c = torch.cat([out for out in outs], 1)
 
@@ -157,7 +156,6 @@ class RNN(nn.Module):
         self.seq_len = len(primer_input)
         # build hidden layer
         inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0, 2)
-        print(inp)
         _ = self.forward(inp, self.hidden)
 
         self.seq_len = 1
