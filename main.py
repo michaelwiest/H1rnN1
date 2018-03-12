@@ -5,9 +5,9 @@ from helper import *
 import csv
 
 batch_size = 10
-kernel_size = 30
+kernel_size = 4
 lstm_hidden_units = 100
-num_filters = 10
+num_filters = 32
 samples_per_epoch = 50000
 num_epochs = 10
 learning_rate = 0.001
