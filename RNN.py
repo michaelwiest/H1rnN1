@@ -174,6 +174,6 @@ class RNN(nn.Module):
                 print(inp)
 
 
-        strlist = [fasta_sampler.vocabulary.keys()[fasta_sampler.vocabulary.values().index(pred)] for pred in predicted]
+        strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
         return ''.join(strlist)
         # return (''.join(strlist).replace(fasta_sampler.pad_char, '')).replace(fasta_sampler.start, '').replace(fasta_sampler.end, '')
