@@ -45,7 +45,8 @@ class RNN(nn.Module):
         batch_size = inputs.size(1)
         num_elements = inputs.size(2)
 
-        # Run through Convolutional layers
+        # Run through Convolutional layers. Chomp elements so our output
+        # size matches our labels.
         outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         c = torch.cat([out for out in outs], 1)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
@@ -103,12 +104,7 @@ class RNN(nn.Module):
 
                 # Do a forward pass.
                 outputs = self.forward(train, self.hidden)
-                print(outputs)
-                # Need to skip the first entry in the predicted elements.
-                # and also ignore all the end elements because theyre just
-                # predicting padding.
-                # outputs = outputs[1:-self.kernel_size, :, :]
-                # reshape the targets to match.
+
                 targets = targets.transpose(0, 2).transpose(1, 2).long()
 
                 for bat in range(batch_size):
