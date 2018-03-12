@@ -43,11 +43,12 @@ class RNN(nn.Module):
 
     def forward(self, inputs, hidden):
         batch_size = inputs.size(1)
+        num_elements = inputs.size(2)
 
         # Run through Conv1d and Pool1d layers
-        c1 = self.c1(inputs)
+        c1 = self.c1(inputs)[:, :, :num_elements]
         print(c1) #[1:-self.p1, :, :]
-        c2 = self.c2(inputs)
+        c2 = self.c2(inputs)[:, :, :num_elements]
         print(c2) #[1:-self.p2, :, :]
         # c = self.c2(p)
         c = torch.cat(c1, 1)
@@ -129,7 +130,7 @@ class RNN(nn.Module):
 
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
-                    outputs_val = outputs_val[1:-self.kernel_size, :, :]
+                    outputs_val = outputs_val#[1:-self.kernel_size, :, :]
                     val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
