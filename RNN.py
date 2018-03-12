@@ -152,14 +152,14 @@ class RNN(nn.Module):
         predicted = list(primer_input)
         if predict_len is not None:
             for p in range(predict_len):
-                output = self.forward(inp)
+                output = self.forward(inp, self.hidden)
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 predicted.append(flip_coin(soft_out, self.use_gpu))
                 inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
 
         else:
             while end_found == False:
-                output = self.forward(inp)
+                output = self.forward(inp, self.hidden)
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
