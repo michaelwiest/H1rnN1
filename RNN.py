@@ -50,9 +50,9 @@ class RNN(nn.Module):
         print(c1) #[1:-self.p1, :, :]
         c2 = self.c2(inputs)[:, :, :num_elements]
         print(c2) #[1:-self.p2, :, :]
-        # c = self.c2(p)
-        c = torch.cat(c1, 1)
-        c = torch.cat(c2, 1)
+        outs = [c1, c2]
+        c = torch.cat([out for out in outs], 1)
+        print(c)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
