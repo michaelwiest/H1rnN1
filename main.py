@@ -2,6 +2,7 @@ from fasta_sampler import *
 from RNN import *
 from helper import *
 import csv
+import IPython
 
 batch_size = 10
 kernel_size = 30
