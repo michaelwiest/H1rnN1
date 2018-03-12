@@ -30,7 +30,7 @@ rnn = RNN(1, num_filters, len(vocab.keys()), kernel_size, lstm_hidden_units,
 train_loss, val_loss = rnn.train(fs, 30, 5, 0.001,
                                  samples_per_epoch=samples_per_epoch)
 
-torch.save(model.state_dict(), 'model.pt')
+torch.save(rnn.state_dict(), 'model.pt')
 
 with open('log.csv', 'w+') as csvfile:
     writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
