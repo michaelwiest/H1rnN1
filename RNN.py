@@ -29,13 +29,13 @@ class RNN(nn.Module):
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        self.p1 = kernel_size
-        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=self.p1)
-        dilation = 2
-        self.p2 = kernel_size + (kernel_size - 1) * dilation
+        p1 = kernel_size
+        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=p1)
+        dilation = 1
+        p2 = kernel_size + (kernel_size - 1) * dilation
         self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
                             dilation=dilation,
-                            padding=self.p2)
+                            padding=p2)
 
         self.convs = [self.c1, self.c2]
 
