@@ -135,7 +135,7 @@ class RNN(nn.Module):
         return train_loss_vec, val_loss_vec
 
     def daydream(self, primer, T, fasta_sampler, predict_len=None):
-        vocab_size = len(vocab)
+        vocab_size = len(fasta_sampler.vocabulary)
         # Have we detected an end character?
         end_found = False
         self.batch_size = 1
