@@ -30,10 +30,12 @@ class RNN(nn.Module):
         self.batch_size = batch_size
 
         self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=kernel_size)
+        p1 = kernel_size
         dilation = 1
+        p2 = kernel_size + (kernel_size - 1) * dilation
         self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
                             dilation=dilation,
-                            padding=kernel_size + (kernel_size - 1) * dilation)
+                            padding=p2)
         self.lstm = nn.LSTM(num_filters, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
@@ -42,9 +44,11 @@ class RNN(nn.Module):
         batch_size = inputs.size(1)
 
         # Run through Conv1d and Pool1d layers
-        c = self.c2(inputs)
+        c1 = self.c1(inputs)[1:-p1, :, :]
+        c2 = self.c2(inputs)[1:-p2, :, :]
         # c = self.c2(p)
-
+        c = torch.cat(c1, 1)
+        c = torch.cat(c2, 1)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
@@ -105,7 +109,7 @@ class RNN(nn.Module):
                 # Need to skip the first entry in the predicted elements.
                 # and also ignore all the end elements because theyre just
                 # predicting padding.
-                outputs = outputs[1:-self.kernel_size, :, :]
+                # outputs = outputs[1:-self.kernel_size, :, :]
                 # reshape the targets to match.
                 targets = targets.transpose(0, 2).transpose(1, 2).long()
 
