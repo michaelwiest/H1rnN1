@@ -46,6 +46,7 @@ class RNN(nn.Module):
         p = c.transpose(1, 2).transpose(0, 1)
 
         output, self.hidden = self.lstm(p, hidden)
+        conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return output
