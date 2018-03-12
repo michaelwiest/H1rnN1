@@ -145,11 +145,11 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer_input)
         # build hidden layer
-        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu)
+        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0,2)
         print(inp)
         _ = self.forward(inp, self.hidden)
 
-        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0,2)
+        # inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0,2)
         self.seq_len = 1
         predicted = list(primer_input)
         if predict_len is not None:
