@@ -32,7 +32,7 @@ class RNN(nn.Module):
         self.p1 = kernel_size
         self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=self.p1)
 
-        dilation = 1
+        dilation = 2
         self.p2 = kernel_size + (kernel_size - 1) * dilation
         self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
                             dilation=dilation,
