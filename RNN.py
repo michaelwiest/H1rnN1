@@ -134,14 +134,14 @@ class RNN(nn.Module):
 
         return train_loss_vec, val_loss_vec
 
-    def daydream(self, primer, T, predict_len=None):
-        vocab_size = len(self.vocab)
+    def daydream(self, primer, T, vocab, predict_len=None):
+        vocab_size = len(vocab)
         # Have we detected an end character?
         end_found = False
         self.batch_size = 1
 
         self.__init_hidden()
-        primer_input = [self.vocab[char] for char in primer]
+        primer_input = [vocab[char] for char in primer]
 
         self.seq_len = len(primer_input)
         # build hidden layer
@@ -164,9 +164,9 @@ class RNN(nn.Module):
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
                 # print(found_char)
-                if found_char == self.vocab[self.end_char]:
+                if found_char == vocab[self.end_char]:
                     end_found = True
                 inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
 
-        strlist = [self.vocab.keys()[self.vocab.values().index(pred)] for pred in predicted]
+        strlist = [vocab.keys()[vocab.values().index(pred)] for pred in predicted]
         return (''.join(strlist).replace(self.pad_char, '')).replace(self.start_char, '').replace(self.end_char, '')
