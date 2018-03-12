@@ -134,14 +134,14 @@ class RNN(nn.Module):
 
         return train_loss_vec, val_loss_vec
 
-    def daydream(self, primer, T, vocab, predict_len=None):
+    def daydream(self, primer, T, fasta_sampler, predict_len=None):
         vocab_size = len(vocab)
         # Have we detected an end character?
         end_found = False
         self.batch_size = 1
 
         self.__init_hidden()
-        primer_input = [vocab[char] for char in primer]
+        primer_input = [fasta_sampler.vocabulary[char] for char in primer]
 
         self.seq_len = len(primer_input)
         # build hidden layer
@@ -160,15 +160,15 @@ class RNN(nn.Module):
                 inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
 
         else:
-            while end_found == False:
+            while end_found is False:
                 output = self.forward(inp, self.hidden)
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
-                # print(found_char)
-                if found_char == vocab[self.end_char]:
+                if found_char == fasta_sampler.vocabulary[fasta_sampler.end_char]:
                     end_found = True
                 inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
 
-        strlist = [vocab.keys()[vocab.values().index(pred)] for pred in predicted]
-        return (''.join(strlist).replace(self.pad_char, '')).replace(self.start_char, '').replace(self.end_char, '')
+        strlist = [fasta_sampler.vocabulary.keys()[fasta_sampler.vocabulary.values().index(pred)] for pred in predicted]
+        return ''.join(strlist)
+        # return (''.join(strlist).replace(fasta_sampler.pad_char, '')).replace(fasta_sampler.start_char, '').replace(fasta_sampler.end_char, '')
