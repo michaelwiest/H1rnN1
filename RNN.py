@@ -47,18 +47,11 @@ class RNN(nn.Module):
         batch_size = inputs.size(1)
         num_elements = inputs.size(2)
 
-        # Run through Conv1d and Pool1d layers
+        # Run through Convolutional layers
         outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
-        # c1 = self.c1(inputs)[:, :, :num_elements]
-        # print(c1) #[1:-self.p1, :, :]
-        # c2 = self.c2(inputs)[:, :, :num_elements]
-        # print(c2) #[1:-self.p2, :, :]
-        # outs = [c1, c2]
         c = torch.cat([out for out in outs], 1)
-        print(c)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
-
 
         output, self.hidden = self.lstm(p, hidden)
         conv_seq_len = output.size(0)
@@ -133,7 +126,7 @@ class RNN(nn.Module):
 
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
-                    outputs_val = outputs_val#[1:-self.kernel_size, :, :]
+                    outputs_val = outputs_val
                     val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
