@@ -149,22 +149,24 @@ class RNN(nn.Module):
         print(inp)
         _ = self.forward(inp, self.hidden)
 
-        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0,2)
+        # inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0,2)
         self.seq_len = 1
         predicted = list(primer_input)
         if predict_len is not None:
             for p in range(predict_len):
+                inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
                 output = self.forward(inp, self.hidden)
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 print(found_char)
                 predicted.append(found_char)
-                inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
+
                 # inp = add_cuda_to_variable([predicted[-self.kernel_size:]], self.use_gpu).transpose(0, 3)[0]
                 # print(inp)
 
         else:
             while end_found is False:
+                inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
                 output = self.forward(inp, self.hidden)
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
@@ -172,7 +174,7 @@ class RNN(nn.Module):
                 predicted.append(found_char)
                 if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
                     end_found = True
-                inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
+
                 # inp = add_cuda_to_variable([predicted[-self.kernel_size:]], self.use_gpu).transpose(0, 3)[0]
                 # print(inp)
 
