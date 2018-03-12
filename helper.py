@@ -7,9 +7,11 @@ import pdb
 # function maps each word to an index
 def get_idx(char_data):
     word_to_ix = {}
+    count = 1
     for word in char_data:
         if word not in word_to_ix:
-            word_to_ix[word] = len(word_to_ix)
+            word_to_ix[word] = count
+            count += 1
     return word_to_ix
 
 def avg_len_music_file(data, ch):
