@@ -169,7 +169,7 @@ class RNN(nn.Module):
                 predicted.append(found_char)
                 if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
                     end_found = True
-                inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu)#.transpose(0, 2)
+                inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
                 # inp = add_cuda_to_variable([predicted[-self.kernel_size:]], self.use_gpu).transpose(0, 3)[0]
                 print(inp)
 
