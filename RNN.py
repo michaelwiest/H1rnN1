@@ -29,23 +29,32 @@ class RNN(nn.Module):
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size)
-        # self.c2 = nn.Conv1d(hidden_size, hidden_size, 1)
-        self.lstm = nn.LSTM(num_filters, lstm_hidden, n_layers, dropout=0.01)
+        self.p1 = kernel_size
+        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=self.p1)
+        dilation = 2
+        self.p2 = kernel_size + (kernel_size - 1) * dilation
+        self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
+                            dilation=dilation,
+                            padding=self.p2)
+
+        self.convs = [self.c1, self.c2]
+
+        self.lstm = nn.LSTM(len(self.convs) * num_filters, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
     def forward(self, inputs, hidden):
         batch_size = inputs.size(1)
+        num_elements = inputs.size(2)
 
-        # Run through Conv1d and Pool1d layers
-        c = self.c1(inputs)
-        # c = self.c2(p)
-
+        # Run through Convolutional layers
+        outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
+        c = torch.cat([out for out in outs], 1)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
         output, self.hidden = self.lstm(p, hidden)
+        conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return output
@@ -86,7 +95,7 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size)
+                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size)
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
 
@@ -96,12 +105,11 @@ class RNN(nn.Module):
 
                 # Do a forward pass.
                 outputs = self.forward(train, self.hidden)
-
+                print(outputs)
                 # Need to skip the first entry in the predicted elements.
-                # this might need to get switched to:
-                # outputs = outputs[:-1, :, :]
-                # Basically it has one to many elements to compare with the loss.
-                outputs = outputs[1:, :, :]
+                # and also ignore all the end elements because theyre just
+                # predicting padding.
+                # outputs = outputs[1:-self.kernel_size, :, :]
                 # reshape the targets to match.
                 targets = targets.transpose(0, 2).transpose(1, 2).long()
 
@@ -112,13 +120,13 @@ class RNN(nn.Module):
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, self.kernel_size, group='validation')
+                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation')
                     val = add_cuda_to_variable(val, self.use_gpu)
                     val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
 
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
-                    outputs_val = outputs_val[1:, :, :]
+                    outputs_val = outputs_val
                     val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
