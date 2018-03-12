@@ -31,13 +31,15 @@ class RNN(nn.Module):
 
         self.p1 = kernel_size
         self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=self.p1)
-
         dilation = 2
         self.p2 = kernel_size + (kernel_size - 1) * dilation
         self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
                             dilation=dilation,
                             padding=self.p2)
-        self.lstm = nn.LSTM(num_filters, lstm_hidden, n_layers, dropout=0.01)
+
+        self.convs = [self.c1, self.c2]
+
+        self.lstm = nn.LSTM(len(convs) * num_filters, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
@@ -46,11 +48,12 @@ class RNN(nn.Module):
         num_elements = inputs.size(2)
 
         # Run through Conv1d and Pool1d layers
-        c1 = self.c1(inputs)[:, :, :num_elements]
-        print(c1) #[1:-self.p1, :, :]
-        c2 = self.c2(inputs)[:, :, :num_elements]
-        print(c2) #[1:-self.p2, :, :]
-        outs = [c1, c2]
+        outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
+        # c1 = self.c1(inputs)[:, :, :num_elements]
+        # print(c1) #[1:-self.p1, :, :]
+        # c2 = self.c2(inputs)[:, :, :num_elements]
+        # print(c2) #[1:-self.p2, :, :]
+        # outs = [c1, c2]
         c = torch.cat([out for out in outs], 1)
         print(c)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
