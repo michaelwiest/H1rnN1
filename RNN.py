@@ -145,7 +145,8 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer_input)
         # build hidden layer
-        _ = self.forward(add_cuda_to_variable(primer_input[:-1], self.use_gpu))
+        _ = self.forward(add_cuda_to_variable(primer_input[:-1], self.use_gpu),
+                         self.hidden)
 
         inp = add_cuda_to_variable([primer_input[-1]], self.use_gpu)
         self.seq_len = 1
