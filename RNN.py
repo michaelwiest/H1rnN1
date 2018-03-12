@@ -133,3 +133,22 @@ class RNN(nn.Module):
             print('Completed Epoch ' + str(epoch))
 
         return train_loss_vec, val_loss_vec
+
+        def generate_predictions(self, fasta_sampler, batch_size, year, predict_len, temperature):
+            primer, targets = fasta_sampler.generate_N_sample_per_year(batch_size, year, full=False)
+            primer = add_cuda_to_variable(sample, self.use_gpu)
+            targets = add_cuda_to_variable(targets, self.use_gpu)
+
+            self.__init_hidden()
+
+            # Do a forward pass.
+            _ = self.forward(add_cuda_to_variable(primer[:-1], self.use_gpu), self.hidden)
+            outputs = self.forward(train, self.hidden)
+            inp = add_cuda_to_variable(primer[-1], self.use_gpu)
+            for p in range(predict_len):
+                output = model(inp)
+                soft_out = custom_softmax(output.data.squeeze(), temperature)
+                predicted.append(flip_coin(soft_out, use_gpu))
+                inp = prepare_data([predicted[-1]], use_gpu)
+
+                

@@ -65,3 +65,6 @@ def weights_to_2d(weights):
 
 def custom_softmax(output, T):
     return torch.exp(torch.div(output, T)) / torch.sum(torch.exp(torch.div(output, T)))
+
+
+    
