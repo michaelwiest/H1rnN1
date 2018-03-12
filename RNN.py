@@ -22,8 +22,6 @@ class RNN(nn.Module):
         self.output_size = output_size # Number of AAs
         self.n_layers = n_layers # Defaults to one.
 
-        if kernel_size % 2 != 0:
-            raise ValueError('Please supply an even number for kernel size')
         self.kernel_size = kernel_size
         self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
