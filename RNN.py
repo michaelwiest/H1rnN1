@@ -145,7 +145,7 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer_input)
         # build hidden layer
-        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0,2)
+        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0, 2)
         print(inp)
         _ = self.forward(inp, self.hidden)
 
@@ -161,6 +161,8 @@ class RNN(nn.Module):
 
         else:
             while end_found is False:
+                inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0,2)
+                print(inp)
                 output = self.forward(inp, self.hidden)
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
