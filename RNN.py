@@ -45,8 +45,10 @@ class RNN(nn.Module):
         batch_size = inputs.size(1)
 
         # Run through Conv1d and Pool1d layers
-        c1 = self.c1(inputs)[1:-self.p1, :, :]
-        c2 = self.c2(inputs)[1:-self.p2, :, :]
+        c1 = self.c1(inputs)
+        print(c1) #[1:-self.p1, :, :]
+        c2 = self.c2(inputs)
+        print(c2) #[1:-self.p2, :, :]
         # c = self.c2(p)
         c = torch.cat(c1, 1)
         c = torch.cat(c2, 1)
