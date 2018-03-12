@@ -36,6 +36,7 @@ class FastaSampler(object):
         vocabulary += self.delim1
         vocabulary += self.pad_char
         self.vocabulary = get_idx(vocabulary)
+        self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
     def __parse_fasta_to_list(self, some_fasta, specified_len=566):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')

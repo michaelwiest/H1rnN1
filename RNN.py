@@ -45,10 +45,7 @@ class RNN(nn.Module):
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
-        # p = F(p)
         output, self.hidden = self.lstm(p, hidden)
-        conv_seq_len = output.size(0)
-        # output = output.view(conv_seq_len * batch_size, -1) # Treating (conv_seq_len x batch_size) as batch_size for linear layer
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return output
@@ -58,10 +55,10 @@ class RNN(nn.Module):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
             if self.use_gpu:
                 self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()),
-                        Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()))
+                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()))
             else:
-                self.hidden =  (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)),
-                        Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)))
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)),
+                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)))
 
     def init_hidden():
         self.__init_hidden()
@@ -133,3 +130,43 @@ class RNN(nn.Module):
             print('Completed Epoch ' + str(epoch))
 
         return train_loss_vec, val_loss_vec
+
+    def daydream(self, primer, T, fasta_sampler, predict_len=None):
+        vocab_size = len(fasta_sampler.vocabulary)
+        # Have we detected an end character?
+        end_found = False
+        self.batch_size = 1
+
+        self.__init_hidden()
+        primer_input = [fasta_sampler.vocabulary[char] for char in primer]
+
+        self.seq_len = len(primer_input)
+        # build hidden layer
+        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0, 2)
+        print(inp)
+        _ = self.forward(inp, self.hidden)
+
+        self.seq_len = 1
+        predicted = list(primer_input)
+        if predict_len is not None:
+            for p in range(predict_len):
+                inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
+                output = self.forward(inp, self.hidden)
+                soft_out = custom_softmax(output.data.squeeze(), T)
+                found_char = flip_coin(soft_out, self.use_gpu)
+                predicted.append(found_char)
+
+        else:
+            while end_found is False:
+                inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
+                output = self.forward(inp, self.hidden)
+                soft_out = custom_softmax(output.data.squeeze(), T)
+                found_char = flip_coin(soft_out, self.use_gpu)
+                predicted.append(found_char)
+                if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
+                    end_found = True
+
+
+        strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
+        return ''.join(strlist)
+        # return (''.join(strlist).replace(fasta_sampler.pad_char, '')).replace(fasta_sampler.start, '').replace(fasta_sampler.end, '')
