@@ -118,7 +118,7 @@ class FastaSampler(object):
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
             output += self.generate_N_sample_per_year(num_samples, year, padding=padding)
 
-        return output, [o[padding:] for o in output]
+        return output, output
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year.
