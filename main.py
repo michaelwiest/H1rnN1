@@ -7,6 +7,7 @@ batch_size = 10
 kernel_size = 30
 lstm_hidden_units = 100
 num_filters = 10
+samples_per_epoch = 50000
 
 # Build the data handler object.
 fs = FastaSampler('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
@@ -26,4 +27,12 @@ use_gpu = torch.cuda.is_available()
 rnn = RNN(1, num_filters, len(vocab.keys()), kernel_size, lstm_hidden_units,
           use_gpu, batch_size)
 
-train_loss, val_loss = rnn.train(fs, 30, 2, 0.001)
+train_loss, val_loss = rnn.train(fs, 30, 5, 0.001,
+                                 samples_per_epoch=samples_per_epoch)
+
+torch.save(model.state_dict(), 'model.pt')
+
+with open('log.csv', 'w+') as csvfile:
+    writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(train_loss)
+    writer.writerow(val_loss)
