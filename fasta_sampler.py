@@ -34,7 +34,7 @@ class FastaSampler(object):
         vocabulary += self.end
         vocabulary += self.delim0
         vocabulary += self.delim1
-        vocabulary += self.pad_char
+        # vocabulary += self.pad_char
         self.vocabulary = get_idx(vocabulary)
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
