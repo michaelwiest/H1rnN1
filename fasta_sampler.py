@@ -119,7 +119,7 @@ class FastaSampler(object):
                 year = self.train_years[np.random.randint(len(self.train_years))]
             elif group.lower() == 'validation':
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
-            output += self.generate_N_sample_per_year(num_samples, year, padding=padding)
+            output += self.generate_N_sample_per_year(num_samples, year)
 
         if slice_len is not None:
             targets = []
@@ -137,8 +137,7 @@ class FastaSampler(object):
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year.
-    def generate_N_sample_per_year(self, N, year, full=True, to_num=True,
-                                   padding=0):
+    def generate_N_sample_per_year(self, N, year, full=True, to_num=True):
         if year not in self.north.keys() or year not in self.south.keys() or \
                 year + 1 not in self.north.keys() or year - 1 not in self.north.keys():
             raise ValueError('Specified year ({}) is not present in dataset.\n' \
