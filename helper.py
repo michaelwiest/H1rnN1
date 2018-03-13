@@ -14,11 +14,6 @@ def get_idx(char_data):
             count += 1
     return word_to_ix
 
-def avg_len_music_file(data, ch):
-    start_idxs = [i for i, ltr in enumerate(data) if ltr == ch]
-    avg_len = [ (start_idxs[i+1]) - start_idxs[i] for i in xrange( 0,len(start_idxs)-1 )]
-    return int(np.mean(avg_len))
-
 def add_cuda_to_variable(data_nums, is_gpu):
     tensor = torch.FloatTensor(data_nums)
     if isinstance(data_nums, list):
@@ -39,15 +34,6 @@ def flip_coin(probabilities, is_gpu):
         sp = stacked_probs.numpy()
     dist = abs(sp - rand_int)
     return np.argmin(dist)
-
-def init_hidden(model):
-    # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-    if model.use_gpu:
-        model.hidden = (Variable(torch.zeros(1, model.batch_size, model.hidden_dim).cuda()),
-                Variable(torch.zeros(1, model.batch_size, model.hidden_dim).cuda()))
-    else:
-        model.hidden =  (Variable(torch.zeros(1, model.batch_size, model.hidden_dim)),
-                Variable(torch.zeros(1, model.batch_size, model.hidden_dim)))
 
 # Feature visualization -> Input(weights, words)
 def feat_vis(h_u, words):
