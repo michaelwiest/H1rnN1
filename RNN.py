@@ -29,6 +29,7 @@ class RNN(nn.Module):
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
+        self.bn1 = nn.BatchNorm1d(num_filters)
         self.convs = []
         for i in xrange(0,len(kernel_size)):
             pad = kernel_size[i] + (kernel_size[i] - 1) * dilation[i]
@@ -43,6 +44,7 @@ class RNN(nn.Module):
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
+
     def forward(self, inputs, hidden):
         batch_size = inputs.size(1)
         # The number of characters in the input string
@@ -52,7 +54,7 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
+        outs = [F.relu(self.bn1(c(inputs)))[:, :, :num_elements] for c in self.convs]
         outs.append(inputs)
 
         c = torch.cat([out for out in outs], 1)
