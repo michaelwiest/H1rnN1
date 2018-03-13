@@ -16,7 +16,7 @@ import csv
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
-                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1):
+                 kernel_size, dilation, lstm_hidden, use_gpu, batch_size, n_layers=1):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
@@ -24,21 +24,22 @@ class RNN(nn.Module):
         self.n_layers = n_layers # Defaults to one.
 
         self.kernel_size = kernel_size
+        self.dilation = dilation
         self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        p1 = kernel_size
-        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=p1)
-        dilation = 1
-        p2 = kernel_size + (kernel_size - 1) * dilation
-        self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
-                            dilation=dilation,
-                            padding=p2)
+        self.convs = []
+        for i in xrange(0,len(kernel_size)):
+            pad = kernel_size[i] + (kernel_size[i] - 1) * dilation[i]
+            if (dilation[i] != 0):
+                self.c = nn.Conv1d(input_size, num_filters, kernel_size[i], dilation=dilation[i], padding=pad)
+            else:
+                self.c = nn.Conv1d(input_size, num_filters, kernel_size[i], padding=pad)
+            self.convs.append(self.c)
 
-        self.convs = [self.c1, self.c2]
-
-        self.lstm = nn.LSTM(len(self.convs) * num_filters, lstm_hidden, n_layers, dropout=0.01)
+        self.lstm_in_size = len(self.convs) * num_filters + 1 # +1 for raw sequence
+        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
@@ -52,7 +53,10 @@ class RNN(nn.Module):
         # elements that are convolving over the padding to the right of the
         # chars.
         outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
+        outs.append(inputs)
+
         c = torch.cat([out for out in outs], 1)
+
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
@@ -74,7 +78,6 @@ class RNN(nn.Module):
 
     def init_hidden():
         self.__init_hidden()
-
 
     def train(self, fasta_sampler, batch_size,
               epochs, lr, samples_per_epoch=100000,
@@ -111,6 +114,11 @@ class RNN(nn.Module):
                 # Do a forward pass.
                 outputs = self.forward(train, self.hidden)
 
+                # Need to skip the first entry in the predicted elements.
+                # and also ignore all the end elements because theyre just
+                # predicting padding.
+                # outputs = outputs[1:-self.kernel_size, :, :]
+                # reshape the targets to match.
                 targets = targets.transpose(0, 2).transpose(1, 2).long()
 
                 for bat in range(batch_size):
