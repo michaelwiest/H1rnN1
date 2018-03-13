@@ -20,7 +20,7 @@ def add_cuda_to_variable(data_nums, is_gpu):
         tensor = tensor.unsqueeze_(0)
     tensor = tensor.unsqueeze_(2)
     if is_gpu:
-        return Variable(tensor.cuda(device_id=0))[0]
+        return Variable(tensor.cuda())[0]
     else:
         return Variable(tensor)[0]
 
