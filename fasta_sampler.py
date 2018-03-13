@@ -13,7 +13,7 @@ AA sequences from a winter > summer > winter combination.
 '''
 class FastaSampler(object):
     def __init__(self, north_fasta, south_fasta,
-                 start='$', end='%', delim0='&', delim1='@', pad_char='`'):
+                 start='$', end='%', delim0='&', delim1='@', pad_char='_'):
         self.start = start
         self.end = end
         self.delim0 = delim0
@@ -107,7 +107,8 @@ class FastaSampler(object):
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
 
-    def generate_N_random_samples_and_targets(self, N, padding=0, group='train'):
+    def generate_N_random_samples_and_targets(self, N, group='train',
+                                              slice_len=None):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []
@@ -120,7 +121,19 @@ class FastaSampler(object):
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
             output += self.generate_N_sample_per_year(num_samples, year, padding=padding)
 
-        return output, output
+        if slice_len is not None:
+            targets = []
+            for i, sample in enumerate(output):
+                index = np.random.randint(len(sample))
+                sliced = sample[index: index + slice_len]
+                if len(sliced) < slice_len:
+                    sliced += [self.vocabulary[self.pad_char]] * (slice_len - len(sliced))
+                output[i] = sliced
+                targets.append(sample[index + 1: index + slice_len + 1])
+
+            return output, targets
+        else:
+            return output, output
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year.

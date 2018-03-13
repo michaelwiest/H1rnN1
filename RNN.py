@@ -85,7 +85,7 @@ class RNN(nn.Module):
 
     def train(self, fasta_sampler, batch_size,
               epochs, lr, samples_per_epoch=100000,
-              save_params=None):
+              save_params=None, slice_len=200):
         np.random.seed(1)
 
         self.batch_size = batch_size
@@ -107,7 +107,8 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size)
+                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
+                                                                                     slice_len=slice_len)
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
 
