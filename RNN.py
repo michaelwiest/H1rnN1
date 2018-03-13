@@ -42,13 +42,16 @@ class RNN(nn.Module):
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
-    def forward(self, inputs, hidden):
+    def forward(self, inputs, hidden, predict=False):
         batch_size = inputs.size(1)
         num_elements = inputs.size(2)
 
         # Run through Convolutional layers. Chomp elements so our output
         # size matches our labels.
-        outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
+        if not predict:
+            outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
+        else:
+            outs = [c(inputs)[:, :, self.kernel_size] for c in self.convs]
         c = torch.cat([out for out in outs], 1)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
@@ -156,10 +159,10 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer_input)
         # build hidden layer
-        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0, 2)
+        inp = add_cuda_to_variable(primer_input[:-self.kernel_size], self.use_gpu).unsqueeze(-1).transpose(0, 2)
         _ = self.forward(inp, self.hidden)
 
-        self.seq_len = 1
+        # self.seq_len = 1
         predicted = list(primer_input)
         if predict_len is not None:
             for p in range(predict_len):
