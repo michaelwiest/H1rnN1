@@ -56,7 +56,7 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [F.relu(self.bn1(c(inputs)))[:, :, :num_elements] for c in self.convs]
+        outs = [F.relu(self.bn1(c(inputs)))[:, :, 1:num_elements + 1] for c in self.convs]
         outs.append(inputs)
 
         c = torch.cat([out for out in outs], 1)
@@ -133,7 +133,9 @@ class RNN(nn.Module):
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation')
+                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
+                                                                                          group='validation',
+                                                                                          slice_len=slice_len)
                     val = add_cuda_to_variable(val, self.use_gpu)
                     val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
 
