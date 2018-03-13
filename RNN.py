@@ -54,7 +54,7 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [F.relu(self.bn1(c(inputs)))[:, :, :num_elements] for c in self.convs]
+        outs = [F.relu(self.bn1(c(inputs)))[:, :, 1:num_elements + 1] for c in self.convs]
         outs.append(inputs)
 
         c = torch.cat([out for out in outs], 1)
