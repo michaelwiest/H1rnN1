@@ -12,6 +12,7 @@ import random
 import pdb
 import numpy as np
 from helper import *
+import csv
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
