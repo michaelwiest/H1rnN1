@@ -42,16 +42,16 @@ class RNN(nn.Module):
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
-    def forward(self, inputs, hidden, predict=False):
+    def forward(self, inputs, hidden):
         batch_size = inputs.size(1)
+        # The number of characters in the input string
         num_elements = inputs.size(2)
 
         # Run through Convolutional layers. Chomp elements so our output
-        # size matches our labels.
-        if not predict:
-            outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
-        else:
-            outs = [c(inputs)[:, :, self.kernel_size].unsqueeze(-1) for c in self.convs]
+        # size matches our labels. We basically want to ignore all the
+        # elements that are convolving over the padding to the right of the
+        # chars.
+        outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         c = torch.cat([out for out in outs], 1)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
@@ -167,8 +167,7 @@ class RNN(nn.Module):
         if predict_len is not None:
             for p in range(predict_len):
                 inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden, predict=False)[-1]
-                print(output.size())
+                output = self.forward(inp, self.hidden)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu) + 1
                 predicted.append(found_char)
@@ -176,8 +175,7 @@ class RNN(nn.Module):
         else:
             while end_found is False:
                 inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden, predict=False)[-1]
-                print(output.size())
+                output = self.forward(inp, self.hidden)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu) + 1
                 predicted.append(found_char)
