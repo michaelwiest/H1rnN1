@@ -48,14 +48,21 @@ class RNN(nn.Module):
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
-    def forward(self, inputs, hidden):
+    def forward(self, inputs, hidden, predict=False):
         batch_size = inputs.size(1)
         num_elements = inputs.size(2)
 
         # Run through Convolutional layers. Chomp elements so our output
         # size matches our labels.
+<<<<<<< HEAD
         outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         outs.append(inputs)
+=======
+        if not predict:
+            outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
+        else:
+            outs = [c(inputs)[:, :, self.kernel_size].unsqueeze(-1) for c in self.convs]
+>>>>>>> ee48d2ee5537cf2e741498c219d2b9e0442fcc04
         c = torch.cat([out for out in outs], 1)
 
 
@@ -175,25 +182,25 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer_input)
         # build hidden layer
-        inp = add_cuda_to_variable(primer_input[:-1], self.use_gpu).unsqueeze(-1).transpose(0, 2)
+        inp = add_cuda_to_variable(primer_input[:-self.kernel_size], self.use_gpu).unsqueeze(-1).transpose(0, 2)
         _ = self.forward(inp, self.hidden)
 
-        self.seq_len = 1
+        # self.seq_len = 1
         predicted = list(primer_input)
         if predict_len is not None:
             for p in range(predict_len):
                 inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden)
+                output = self.forward(inp, self.hidden, predict=True)
                 soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu)
+                found_char = flip_coin(soft_out, self.use_gpu) + 1
                 predicted.append(found_char)
 
         else:
             while end_found is False:
                 inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden)
+                output = self.forward(inp, self.hidden, predict=True)
                 soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu)
+                found_char = flip_coin(soft_out, self.use_gpu) + 1
                 predicted.append(found_char)
                 if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
                     end_found = True
