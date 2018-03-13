@@ -5,7 +5,7 @@ import csv
 import IPython
 
 batch_size = 20
-kernel_size = [3, 5, 20, 30]
+kernel_size = [] # Set different kernel sizes in a list e.g [3, 5, 20]. Empty list will avoid any convolutions.
 lstm_hidden_units = 100
 num_filters = 64
 samples_per_epoch = 50000

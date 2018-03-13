@@ -54,17 +54,13 @@ class RNN(nn.Module):
 
         # Run through Convolutional layers. Chomp elements so our output
         # size matches our labels.
-<<<<<<< HEAD
-        outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
-        outs.append(inputs)
-=======
         if not predict:
             outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         else:
             outs = [c(inputs)[:, :, self.kernel_size].unsqueeze(-1) for c in self.convs]
->>>>>>> ee48d2ee5537cf2e741498c219d2b9e0442fcc04
-        c = torch.cat([out for out in outs], 1)
+        outs.append(inputs)
 
+        c = torch.cat([out for out in outs], 1)
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
