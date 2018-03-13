@@ -37,11 +37,11 @@ class RNN(nn.Module):
                 self.c = nn.Conv1d(input_size, num_filters, kernel_size[i], dilation=dilation[i], padding=pad)
             else:
                 self.c = nn.Conv1d(input_size, num_filters, kernel_size[i], padding=pad)
-            self.convs.append(self.c)
+            self.convs.append(nn.Sequential(self.c))
 
 
         self.lstm_in_size = len(self.convs) * num_filters + 1 # +1 for raw sequence
-        self.convs = nn.ModuleList([self.convs])
+        self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
