@@ -83,9 +83,15 @@ class RNN(nn.Module):
     def init_hidden():
         self.__init_hidden()
 
-    def train(self, fasta_sampler, batch_size,
-              epochs, lr, samples_per_epoch=100000,
-              save_params=None, slice_len=200):
+    def train(self,
+              fasta_sampler,
+              batch_size,
+              epochs,
+              lr,
+              samples_per_epoch=100000,
+              save_params=None,
+              slice_len=200,
+              slice_incr_perc=0.1):
         np.random.seed(1)
 
         self.batch_size = batch_size
@@ -151,6 +157,11 @@ class RNN(nn.Module):
                     print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
                 iterate += 1
             print('Completed Epoch ' + str(epoch))
+
+            if slice_incr_perc is not None:
+                slice_len += slice_len * slice_incr_perc
+                slice_len = int(slice_len)
+                print('Increased slice length to: {}'.format(slice_len))
 
             if save_params is not None:
                 torch.save(self.state_dict(), save_params[0])
