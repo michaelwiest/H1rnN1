@@ -52,7 +52,9 @@ class RNN(nn.Module):
             outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         else:
             outs = [c(inputs)[:, :, self.kernel_size] for c in self.convs]
+        print(outs[0].shape())
         c = torch.cat([out for out in outs], 1)
+        print(c.shape())
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
