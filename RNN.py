@@ -17,29 +17,34 @@ import IPython
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
-                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1):
+                 kernel_size_l1, lstm_hidden, use_gpu, batch_size, n_layers=1):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
         self.output_size = output_size # Number of AAs
         self.n_layers = n_layers # Defaults to one.
 
-        self.kernel_size = kernel_size
+        self.kernel_size_l1 = kernel_size_l1
         self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        p1 = kernel_size
-        self.c1 = nn.Conv1d(input_size, num_filters, kernel_size, padding=p1)
-        dilation = 1
-        p2 = kernel_size + (kernel_size - 1) * dilation
-        self.c2 = nn.Conv1d(input_size, num_filters, kernel_size,
-                            dilation=dilation,
-                            padding=p2)
+        self.convs = []
+        for i in xrange(0,len(kernel_size_l1)):
+            p1 = kernel_size_l1[i]
+            self.c1 = nn.Conv1d(input_size, num_filters, kernel_size_l1[i], padding=p1)
+            dilation = 1
+            p2 = kernel_size_l1[i] + (kernel_size_l1[i] - 1) * dilation
+            self.c2 = nn.Conv1d(input_size, num_filters, kernel_size_l1[i],
+                                dilation=dilation,
+                                padding=p2)
 
-        self.convs = [self.c1, self.c2]
+            self.convs.append(self.c1) #Without dilation
+            self.convs.append(self.c2) #With dilation
 
-        self.lstm = nn.LSTM(len(self.convs) * num_filters + 1, lstm_hidden, n_layers, dropout=0.01)
+        self.lstm_in_size = len(self.convs) * num_filters + 1
+
+        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
@@ -53,18 +58,17 @@ class RNN(nn.Module):
         outs.append(inputs)
         c = torch.cat([out for out in outs], 1)
 
-        IPython.embed()
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
-        IPython.embed()
+        # IPython.embed()
 
         output, self.hidden = self.lstm(p, hidden)
         conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
-        IPython.embed()
+        # IPython.embed()
         return output
 
 
@@ -114,7 +118,6 @@ class RNN(nn.Module):
                 loss = 0
 
                 # Do a forward pass.
-                IPython.embed()
                 outputs = self.forward(train, self.hidden)
 
 
@@ -130,8 +133,6 @@ class RNN(nn.Module):
                     loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
                 optimizer.step()
-
-                IPython.embed()
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))

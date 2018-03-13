@@ -5,9 +5,9 @@ import csv
 import IPython
 
 batch_size = 20
-kernel_size = 10
+kernel_size = [3, 5, 20, 30]
 lstm_hidden_units = 100
-num_filters = 32
+num_filters = 64
 samples_per_epoch = 50000
 num_epochs = 5
 learning_rate = 0.001
