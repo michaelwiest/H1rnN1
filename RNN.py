@@ -38,7 +38,7 @@ class RNN(nn.Module):
 
         self.convs = [self.c1, self.c2]
 
-        self.lstm = nn.LSTM(len(self.convs) * num_filters, lstm_hidden, n_layers, dropout=0.01)
+        self.lstm = nn.LSTM(len(self.convs) * num_filters + 1, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
@@ -49,16 +49,21 @@ class RNN(nn.Module):
         # Run through Convolutional layers. Chomp elements so our output
         # size matches our labels.
         outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
+        outs.append(inputs)
         c = torch.cat([out for out in outs], 1)
 
         IPython.embed()
+
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
+
+        IPython.embed()
 
         output, self.hidden = self.lstm(p, hidden)
         conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
+        IPython.embed()
         return output
 
 
@@ -108,7 +113,7 @@ class RNN(nn.Module):
                 # Do a forward pass.
                 IPython.embed()
                 outputs = self.forward(train, self.hidden)
-                IPython.embed()
+
 
                 print(outputs)
                 # Need to skip the first entry in the predicted elements.
@@ -122,6 +127,8 @@ class RNN(nn.Module):
                     loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
                 optimizer.step()
+
+                IPython.embed()
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
