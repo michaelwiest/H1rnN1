@@ -51,7 +51,7 @@ class RNN(nn.Module):
         if not predict:
             outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         else:
-            outs = [c(inputs)[:, :, self.kernel_size - 1].unsqueeze(-1) for c in self.convs]
+            outs = [c(inputs)[:, :, self.kernel_size + 1].unsqueeze(-1) for c in self.convs]
         c = torch.cat([out for out in outs], 1)
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
