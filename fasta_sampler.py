@@ -94,7 +94,7 @@ class FastaSampler(object):
         # self.__generate_vocabulary(''.join(list(seqs)))
         return data, ''.join(list(seqs))
 
-    def set_train_val_years(self, validation):
+    def set_validation_years(self, validation):
         all_years = self.north.keys()
         self.train_years = list(set(all_years) - set(validation))
         self.validation_years = list(set(all_years) - set(self.train_years))
