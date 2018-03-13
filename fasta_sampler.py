@@ -37,7 +37,7 @@ class FastaSampler(object):
         # vocabulary += self.pad_char
         self.vocabulary = get_idx(vocabulary)
         # This is for the zero padding character.
-        self.vocabulary[0] = '_'
+        self.vocabulary['_'] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
     def __parse_fasta_to_list(self, some_fasta, specified_len=566):
