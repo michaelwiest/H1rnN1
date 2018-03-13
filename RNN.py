@@ -114,8 +114,6 @@ class RNN(nn.Module):
                 # Do a forward pass.
                 outputs = self.forward(train, self.hidden)
 
-
-                print(outputs)
                 # Need to skip the first entry in the predicted elements.
                 # and also ignore all the end elements because theyre just
                 # predicting padding.
