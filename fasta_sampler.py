@@ -128,6 +128,7 @@ class FastaSampler(object):
                 sliced = sample[index: index + slice_len]
                 if len(sliced) < slice_len:
                     sliced += [self.vocabulary[self.pad_char]] * (slice_len - len(sliced))
+                print(len(sliced))
                 output[i] = sliced
                 targets.append(sample[index + 1: index + slice_len + 1])
 
