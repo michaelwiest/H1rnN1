@@ -23,14 +23,17 @@ use_gpu = torch.cuda.is_available()
 rnn = RNN(1, num_filters, len(vocab.keys()), kernel_size, lstm_hidden_units,
           use_gpu, batch_size)
 
+model_name = 'model.pt'
+log_name = 'log.csv'
 train_loss, val_loss = rnn.train(fs, batch_size,
                                  num_epochs,
                                  learning_rate,
-                                 samples_per_epoch=samples_per_epoch)
+                                 samples_per_epoch=samples_per_epoch,
+                                 save_params=(model_name, log_name))
 
-torch.save(rnn.state_dict(), 'model.pt')
+# torch.save(rnn.state_dict(), 'model.pt')
 
-with open('log.csv', 'w+') as csvfile:
-    writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-    writer.writerow(train_loss)
-    writer.writerow(val_loss)
+# with open('log.csv', 'w+') as csvfile:
+#     writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+#     writer.writerow(train_loss)
+#     writer.writerow(val_loss)
