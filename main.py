@@ -1,4 +1,4 @@
-'''
+
 from fasta_sampler import *
 from RNN import *
 from helper import *
@@ -32,7 +32,6 @@ log_name = 'log.csv'
 train_loss, val_loss = rnn.train(fs, batch_size,
                                  num_epochs,
                                  learning_rate,
-<<<<<<< HEAD
                                  samples_per_epoch=samples_per_epoch)
 
 torch.save(rnn.state_dict(), 'model.pt')
@@ -41,10 +40,8 @@ with open('log.csv', 'w+') as csvfile:
     writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
     writer.writerow(train_loss)
     writer.writerow(val_loss)
-=======
                                  samples_per_epoch=samples_per_epoch,
                                  save_params=(model_name, log_name),
                                  slice_len=seq_length,
                                  slice_incr_perc=seq_length_incr_perc
                                  )
->>>>>>> master
