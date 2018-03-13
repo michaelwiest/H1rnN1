@@ -138,8 +138,8 @@ class RNN(nn.Module):
                 torch.save(self.state_dict(), save_params[0])
                 with open(save_params[1], 'w+') as csvfile:
                     writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow(train_loss)
-                    writer.writerow(val_loss)
+                    writer.writerow(train_loss_vec)
+                    writer.writerow(val_loss_vec)
                 print('Saved model state to: {}'.format(save_params[0]))
 
 
