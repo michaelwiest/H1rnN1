@@ -12,6 +12,7 @@ import random
 import pdb
 import numpy as np
 from helper import *
+import csv
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
@@ -72,7 +73,9 @@ class RNN(nn.Module):
         self.__init_hidden()
 
 
-    def train(self, fasta_sampler, batch_size, epochs, lr, samples_per_epoch=100000):
+    def train(self, fasta_sampler, batch_size,
+              epochs, lr, samples_per_epoch=100000,
+              save_params=None):
         np.random.seed(1)
 
         self.batch_size = batch_size
@@ -130,6 +133,15 @@ class RNN(nn.Module):
                     print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
                 iterate += 1
             print('Completed Epoch ' + str(epoch))
+
+            if save_params is not None:
+                torch.save(self.state_dict(), save_params[0])
+                with open(save_params[1], 'w+') as csvfile:
+                    writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow(train_loss_vec)
+                    writer.writerow(val_loss_vec)
+                print('Saved model state to: {}'.format(save_params[0]))
+
 
         return train_loss_vec, val_loss_vec
 

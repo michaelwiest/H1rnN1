@@ -3,12 +3,12 @@ from RNN import *
 from helper import *
 import csv
 
-batch_size = 10
-kernel_size = 4
+batch_size = 20
+kernel_size = 10
 lstm_hidden_units = 100
 num_filters = 32
 samples_per_epoch = 50000
-num_epochs = 10
+num_epochs = 5
 learning_rate = 0.001
 
 # Build the data handler object.
@@ -23,14 +23,11 @@ use_gpu = torch.cuda.is_available()
 rnn = RNN(1, num_filters, len(vocab.keys()), kernel_size, lstm_hidden_units,
           use_gpu, batch_size)
 
+model_name = 'model.pt'
+log_name = 'log.csv'
 train_loss, val_loss = rnn.train(fs, batch_size,
                                  num_epochs,
                                  learning_rate,
-                                 samples_per_epoch=samples_per_epoch)
-
-torch.save(rnn.state_dict(), 'model.pt')
-
-with open('log.csv', 'w+') as csvfile:
-    writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-    writer.writerow(train_loss)
-    writer.writerow(val_loss)
+                                 samples_per_epoch=samples_per_epoch,
+                                 save_params=(model_name, log_name)
+                                 )
