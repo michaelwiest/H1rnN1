@@ -51,10 +51,8 @@ class RNN(nn.Module):
         if not predict:
             outs = [c(inputs)[:, :, :num_elements] for c in self.convs]
         else:
-            outs = [c(inputs)[:, :, self.kernel_size] for c in self.convs]
-        print(outs[0].size())
+            outs = [c(inputs)[:, :, self.kernel_size].unsqueeze(-1) for c in self.convs]
         c = torch.cat([out for out in outs], 1)
-        print(c.size())
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
@@ -170,18 +168,16 @@ class RNN(nn.Module):
             for p in range(predict_len):
                 inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
                 output = self.forward(inp, self.hidden, predict=True)
-                print(output.size())
                 soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu)
+                found_char = flip_coin(soft_out, self.use_gpu) + 1
                 predicted.append(found_char)
 
         else:
             while end_found is False:
                 inp = add_cuda_to_variable(predicted[-self.kernel_size:], self.use_gpu).unsqueeze(-1).transpose(0, 2)
                 output = self.forward(inp, self.hidden, predict=True)
-                print(output.size())
                 soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu)
+                found_char = flip_coin(soft_out, self.use_gpu) + 1
                 predicted.append(found_char)
                 if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
                     end_found = True
