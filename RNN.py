@@ -182,7 +182,7 @@ class RNN(nn.Module):
                 inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
                 output = self.forward(inp, self.hidden)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu) + 1
+                found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
 
         else:
@@ -190,11 +190,10 @@ class RNN(nn.Module):
                 inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
                 output = self.forward(inp, self.hidden)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu) + 1
+                found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
                 if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
                     end_found = True
-
 
         strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
         return ''.join(strlist)
