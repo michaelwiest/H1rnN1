@@ -5,6 +5,9 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from helper import get_idx
+import difflib
+import pdb
+from helper import *
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -157,9 +160,13 @@ class FastaSampler(object):
         while len(prev_summer_seq) < N:
             ind = np.random.randint(len(possible_prev_summers))
             sample = possible_prev_summers[ind]
+
             if (sample['year'] == year and sample['month'] <= s_upper and \
                     sample['month'] >= s_lower):
-                prev_summer_seq.append(sample['seq'])
+                compareseq = hamming(sample['seq'], prev_winter_seq[len(prev_summer_seq)])
+                # print(float(compareseq)/len(sample['seq']))
+                if float(compareseq)/len(sample['seq']) < 0.01:
+                    prev_summer_seq.append(sample['seq'])
 
         # Get N future winter sequences.
         while len(future_winter_seq) < N:
@@ -167,7 +174,9 @@ class FastaSampler(object):
             sample = possible_future_winters[ind]
             if (sample['year'] == year + 1 and sample['month'] <= w_upper) or \
                     (sample['year'] == year and sample['month'] >= w_lower):
-                future_winter_seq.append(sample['seq'])
+                compareseq = hamming(sample['seq'], prev_summer_seq[len(future_winter_seq)])
+                if float(compareseq)/len(sample['seq']) < 0.01:
+                    future_winter_seq.append(sample['seq'])
 
         # If we want the full sequence (for training) vs. if we only want
         # the first two portions (for priming for generation).

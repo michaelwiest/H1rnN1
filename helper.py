@@ -3,6 +3,8 @@ import random
 from torch.autograd import Variable
 import torch
 import pdb
+import operator
+from itertools import izip, imap
 
 # function maps each word to an index
 def get_idx(char_data):
@@ -67,4 +69,7 @@ def custom_softmax(output, T):
     return torch.exp(torch.div(output, T)) / torch.sum(torch.exp(torch.div(output, T)))
 
 
-    
+def hamming(str1, str2):
+    assert len(str1) == len(str2)
+    ne = operator.ne
+    return sum(imap(ne, str1, str2))
