@@ -66,7 +66,7 @@ class RNN(nn.Module):
         conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
-        return output
+        return F.log_softmax(output)
 
 
     def __init_hidden(self):
