@@ -29,18 +29,30 @@ class RNN(nn.Module):
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        self.bn1 = nn.BatchNorm1d(num_filters)
         self.convs = []
-        for i in xrange(0, len(kernel_size)):
-            pad = kernel_size[i] + (kernel_size[i] - 1) * dilation[i]
-            if (dilation[i] != 0):
-                self.c = nn.Conv1d(input_size, num_filters, kernel_size[i], dilation=dilation[i], padding=pad)
-            else:
-                self.c = nn.Conv1d(input_size, num_filters, kernel_size[i], padding=pad)
-            self.convs.append(nn.Sequential(self.c))
+        self.conv_outputs = 0
 
+        # Assuming kernel size is a list of lists. We make Sequential
+        # convolutional elements for things in the same list. Later lists
+        # are parallel convolutional layers.
+        for i in xrange(len(kernel_size)):
+            inp_size = self.input_size
+            mods = []
+            row = kernel_size[i]
+            for j in xrange(len(kernel_size[i])):
+                kernel = row[j]
+                nf = self.num_filters[i][j]
+                pad = kernel
+                # We want a conv, batchnorm and relu after each layer.
+                mods.append(nn.Conv1d(inp_size, nf, kernel, padding=pad))
+                mods.append(nn.BatchNorm1d(nf))
+                mods.append(nn.ReLU())
+                inp_size = nf
+            # This is the total number of inputs to the LSTM layer.
+            self.conv_outputs += nf
+            self.convs.append(nn.Sequential(*mods))
 
-        self.lstm_in_size = len(self.convs) * num_filters + self.input_size
+        self.lstm_in_size = self.conv_outputs + self.input_size # +1 for raw sequence
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
@@ -56,10 +68,10 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [F.relu(self.bn1(c(inputs)))[:, :, :num_elements] for c in self.convs]
+        outs = [conv(inputs)[:, :, :num_elements] for conv in self.convs]
         outs.append(inputs)
-
         c = torch.cat([out for out in outs], 1)
+
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
