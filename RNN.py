@@ -31,6 +31,7 @@ class RNN(nn.Module):
 
         # self.bn1 = nn.BatchNorm1d(num_filters)
         self.convs = []
+        self.conv_outputs = 0
 
         for i in xrange(len(kernel_size)):
             inp_size = self.input_size
@@ -44,10 +45,12 @@ class RNN(nn.Module):
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
                 inp_size = nf
+            self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
 
 
-        self.lstm_in_size = len(self.convs) * num_filters + 1 # +1 for raw sequence
+        # self.lstm_in_size = len(self.convs) * num_filters + self.input_size # +1 for raw sequence
+        self.lstm_in_size = self.conv_outputs + self.input_size # +1 for raw sequence
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
