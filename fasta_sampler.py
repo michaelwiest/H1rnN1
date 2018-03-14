@@ -146,6 +146,7 @@ class FastaSampler(object):
             if (sample['year'] == year and sample['month'] <= upper) or \
                     (sample['year'] == year - 1 and sample['month'] >= lower):
                 winter_seq.append(sample['seq'])
+        return winter_seq
 
 
     def __get_summer_sample(self, year, possibles, upper, lower):
@@ -156,6 +157,7 @@ class FastaSampler(object):
             if (sample['year'] == year and sample['month'] <= s_upper and \
                     sample['month'] >= s_lower):
                 summer_seq.append(sample['seq'])
+        return summer_seq
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year.
@@ -172,7 +174,6 @@ class FastaSampler(object):
                              'Maximum year is: {}'.format(year, max(self.north.keys())))
         if len(pattern) > 3:
             raise ValueError('Please only supply patterns of length 3')
-
         # Months bounding the flu season. w = winter. and s = summer for
         # southern hemisphere.
         w_upper = 5
@@ -185,13 +186,11 @@ class FastaSampler(object):
         for i, p in enumerate(pattern):
             current_year = year + i
             if p.lower() == 'w':
-                print('Checking winter')
                 possible_winters = self.north[current_year] + self.north[current_year - 1]
                 exs = self.__get_winter_sample(N, current_year,
                                                possible_winters,
                                                w_upper, w_lower)
             elif p.lower() == 's':
-                print('Checking summer')
                 possible_summers = self.south[current_year]
                 exs = self.__get_winter_sample(N, current_year,
                                                possible_summers,
@@ -200,7 +199,6 @@ class FastaSampler(object):
 
         # If we want the full sequence (for training) vs. if we only want
         # the first two portions (for priming for generation).
-        print(all_seqs)
         if full:
             to_return = [self.start + all_seqs[0][i] + self.delim0 +
                          all_seqs[1][i] + self.delim1 + all_seqs[2][i] +
