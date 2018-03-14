@@ -38,7 +38,7 @@ class RNN(nn.Module):
                 kernel = row[j]
                 pad = kernel
                 mods.append(nn.Conv1d(input_size, num_filters, kernel, padding=pad))
-                mods.append(self.bn1)
+                # mods.append(self.bn1)
                 mods.append(nn.ReLU())
             self.convs.append(nn.Sequential(*mods))
 
