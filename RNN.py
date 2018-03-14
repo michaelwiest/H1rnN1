@@ -38,11 +38,12 @@ class RNN(nn.Module):
             row = kernel_size[i]
             for j in xrange(len(kernel_size[i])):
                 kernel = row[j]
+                nf = self.num_filters[i][j]
                 pad = kernel
                 mods.append(nn.Conv1d(inp_size, num_filters, kernel, padding=pad))
-                mods.append(self.bn1)
+                mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
-                inp_size = self.num_filters[i][j]
+                inp_size = nf
             self.convs.append(nn.Sequential(*mods))
 
 
