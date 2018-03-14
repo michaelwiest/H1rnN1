@@ -5,13 +5,16 @@ import torch
 import pdb
 import operator
 from itertools import izip, imap
+from scipy import spatial
 
 # function maps each word to an index
 def get_idx(char_data):
     word_to_ix = {}
+    count = 1
     for word in char_data:
         if word not in word_to_ix:
-            word_to_ix[word] = len(word_to_ix)
+            word_to_ix[word] = count
+            count += 1
     return word_to_ix
 
 def avg_len_music_file(data, ch):
@@ -73,3 +76,7 @@ def hamming(str1, str2):
     assert len(str1) == len(str2)
     ne = operator.ne
     return sum(imap(ne, str1, str2))
+
+def get_next_sorted_sample(A, pt):
+    pdb.set_trace()
+    return spatial.KDTree(A).query(pt)[1]

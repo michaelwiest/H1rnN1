@@ -150,5 +150,3 @@ class RNN(nn.Module):
                 soft_out = custom_softmax(output.data.squeeze(), temperature)
                 predicted.append(flip_coin(soft_out, use_gpu))
                 inp = prepare_data([predicted[-1]], use_gpu)
-
-                

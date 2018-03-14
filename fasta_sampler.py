@@ -15,8 +15,10 @@ of AA sequences from the specified years. Currently can only generate
 AA sequences from a winter > summer > winter combination.
 '''
 class FastaSampler(object):
-    def __init__(self, north_fasta, south_fasta,
+    def __init__(self, north_fasta, south_fasta, threshold = 1, random_gen = False,
                  start='$', end='%', delim0='&', delim1='@', pad_char='`'):
+        self.threshold = threshold
+        self.random_gen = random_gen
         self.start = start
         self.end = end
         self.delim0 = delim0
@@ -39,6 +41,7 @@ class FastaSampler(object):
         vocabulary += self.delim1
         vocabulary += self.pad_char
         self.vocabulary = get_idx(vocabulary)
+        self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
     def __parse_fasta_to_list(self, some_fasta, specified_len=566):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
@@ -107,6 +110,14 @@ class FastaSampler(object):
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
 
+    def order_data(self):
+        ordered_data[2010] = self.north[2010]
+        for year in range(2011, 2019):
+            for N in len(self.south[year])
+                new_data = get_next_sorted_sample(self.north[year-1], )
+                ordered_data_south[year].append()
+
+
     def generate_N_random_samples_and_targets(self, N, padding=0, group='train'):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
@@ -120,7 +131,7 @@ class FastaSampler(object):
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
             output += self.generate_N_sample_per_year(num_samples, year, padding=padding)
 
-        return output, [o[padding:] for o in output]
+        return output, output
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year.
@@ -157,15 +168,21 @@ class FastaSampler(object):
                 prev_winter_seq.append(sample['seq'])
 
         # Get N summer sequences from southern.
+
+        ##*** instead of this, generate N random sequences and thennnn order based on function
         while len(prev_summer_seq) < N:
             ind = np.random.randint(len(possible_prev_summers))
             sample = possible_prev_summers[ind]
 
             if (sample['year'] == year and sample['month'] <= s_upper and \
                     sample['month'] >= s_lower):
-                compareseq = hamming(sample['seq'], prev_winter_seq[len(prev_summer_seq)])
+                # compareseq = hamming(sample['seq'], prev_winter_seq[len(prev_summer_seq)])
                 # print(float(compareseq)/len(sample['seq']))
-                if float(compareseq)/len(sample['seq']) < 0.01:
+                if self.threshold != 1:
+                    compareseq = hamming(sample['seq'], prev_winter_seq[len(prev_summer_seq)])
+                else:
+                    compareseq = 0
+                if float(compareseq)/len(sample['seq']) < self.threshold:
                     prev_summer_seq.append(sample['seq'])
 
         # Get N future winter sequences.
@@ -174,8 +191,11 @@ class FastaSampler(object):
             sample = possible_future_winters[ind]
             if (sample['year'] == year + 1 and sample['month'] <= w_upper) or \
                     (sample['year'] == year and sample['month'] >= w_lower):
-                compareseq = hamming(sample['seq'], prev_summer_seq[len(future_winter_seq)])
-                if float(compareseq)/len(sample['seq']) < 0.01:
+                if self.threshold != 1:
+                    compareseq = hamming(sample['seq'], prev_summer_seq[len(future_winter_seq)])
+                else:
+                    compareseq = 0
+                if float(compareseq)/len(sample['seq']) < self.threshold:
                     future_winter_seq.append(sample['seq'])
 
         # If we want the full sequence (for training) vs. if we only want
