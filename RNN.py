@@ -40,7 +40,7 @@ class RNN(nn.Module):
                 kernel = row[j]
                 nf = self.num_filters[i][j]
                 pad = kernel
-                mods.append(nn.Conv1d(inp_size, num_filters, kernel, padding=pad))
+                mods.append(nn.Conv1d(inp_size, nf, kernel, padding=pad))
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
                 inp_size = nf
