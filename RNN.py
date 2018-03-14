@@ -29,10 +29,12 @@ class RNN(nn.Module):
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        # self.bn1 = nn.BatchNorm1d(num_filters)
         self.convs = []
         self.conv_outputs = 0
 
+        # Assuming kernel size is a list of lists. We make Sequential
+        # convolutional elements for things in the same list. Later lists
+        # are parallel convolutional layers.
         for i in xrange(len(kernel_size)):
             inp_size = self.input_size
             mods = []
@@ -41,15 +43,15 @@ class RNN(nn.Module):
                 kernel = row[j]
                 nf = self.num_filters[i][j]
                 pad = kernel
+                # We want a conv, batchnorm and relu after each layer.
                 mods.append(nn.Conv1d(inp_size, nf, kernel, padding=pad))
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
                 inp_size = nf
+            # This is the total number of inputs to the LSTM layer.
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
 
-
-        # self.lstm_in_size = len(self.convs) * num_filters + self.input_size # +1 for raw sequence
         self.lstm_in_size = self.conv_outputs + self.input_size # +1 for raw sequence
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
@@ -66,14 +68,7 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        # [0] * len(self.convs)
         outs = [conv(inputs)[:, :, :num_elements] for conv in self.convs]
-        # for i, c in enumerate(self.convs):
-        #     outs[i] = c(inputs)
-
-        # outs = [F.relu(self.bn1(c(inputs)))[:, :, :num_elements] for c in self.convs]
-        outs.append(inputs)
-
         c = torch.cat([out for out in outs], 1)
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN

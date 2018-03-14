@@ -4,9 +4,13 @@ from helper import *
 import csv
 
 batch_size = 20
-kernel_size = [[5,10], [20]]
-num_filters = [[32, 64], [64]] # Set different kernel sizes in a list e.g [3, 5, 20]. Empty list will avoid any convolutions.
-dilation = [0, 1, 0] # List of same size as kernel_size. Specify dilation for each conv.
+# List of lists of kernel sizes. Kernels in same list are sequential
+# Kernels in separate lists happen in parallel.
+kernel_sizes = [[5, 10], [20]]
+# Filter sizes associated with kernels above. Will throw an error if they
+# dont' match
+num_filters = [[32, 64], [64]]
+dilation = [0, 1, 0] # Deprecated
 lstm_hidden_units = 100
 # num_filters = 64
 samples_per_epoch = 100000
@@ -24,7 +28,7 @@ vocab = fs.vocabulary
 
 use_gpu = torch.cuda.is_available()
 
-rnn = RNN(1, num_filters, len(vocab.keys()), kernel_size, dilation, lstm_hidden_units,
+rnn = RNN(1, num_filters, len(vocab.keys()), kernel_sizes, dilation, lstm_hidden_units,
           use_gpu, batch_size)
 
 model_name = 'model.pt'
