@@ -123,7 +123,7 @@ class FastaSampler(object):
         if slice_len is not None:
             targets = []
             for i, sample in enumerate(output):
-                index = np.random.randint(max(1, len(sample) - slice_len + 1))
+                index = np.random.randint(max(1, len(sample) - slice_len))
                 sliced = sample[index: index + slice_len]
                 target = sample[index + 1: index + slice_len + 1]
                 if len(sliced) < slice_len:
