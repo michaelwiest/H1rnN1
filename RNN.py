@@ -31,13 +31,16 @@ class RNN(nn.Module):
 
         self.bn1 = nn.BatchNorm1d(num_filters)
         self.convs = []
-        for i in xrange(0,len(kernel_size)):
-            pad = kernel_size[i] + (kernel_size[i] - 1) * dilation[i]
-            if (dilation[i] != 0):
-                self.c = nn.Conv1d(input_size, num_filters, kernel_size[i], dilation=dilation[i], padding=pad)
-            else:
-                self.c = nn.Conv1d(input_size, num_filters, kernel_size[i], padding=pad)
-            self.convs.append(nn.Sequential(self.c))
+        for i in xrange(len(kernel_size)):
+            mods = []
+            row = kernel_size[i]
+            for j in xrange(len(kernel_size[i])):
+                kernel = row[j]
+                pad = kernel
+                mods.append(nn.Conv1d(input_size, num_filters, kernel, padding=pad))
+                mods.append(self.bn1)
+                mods.append(F.relu())
+            self.convs.append(nn.Sequential(*mods))
 
 
         self.lstm_in_size = len(self.convs) * num_filters + 1 # +1 for raw sequence
@@ -56,7 +59,12 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [F.relu(self.bn1(c(inputs)))[:, :, :num_elements] for c in self.convs]
+        # [0] * len(self.convs)
+        outs = [conv(inputs)[:, :, :num_elements] for conv in self.convs]
+        # for i, c in enumerate(self.convs):
+        #     outs[i] = c(inputs)
+
+        # outs = [F.relu(self.bn1(c(inputs)))[:, :, :num_elements] for c in self.convs]
         outs.append(inputs)
 
         c = torch.cat([out for out in outs], 1)

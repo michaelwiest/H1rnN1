@@ -4,7 +4,7 @@ from helper import *
 import csv
 
 batch_size = 20
-kernel_size = [3, 5, 20] # Set different kernel sizes in a list e.g [3, 5, 20]. Empty list will avoid any convolutions.
+kernel_size = [[5,10], [20]] # Set different kernel sizes in a list e.g [3, 5, 20]. Empty list will avoid any convolutions.
 dilation = [0, 1, 0] # List of same size as kernel_size. Specify dilation for each conv.
 lstm_hidden_units = 100
 num_filters = 64
