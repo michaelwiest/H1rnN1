@@ -32,8 +32,8 @@ class RNN(nn.Module):
         self.bn1 = nn.BatchNorm1d(num_filters)
         self.convs = []
 
-        inp_size = self.input_size
         for i in xrange(len(kernel_size)):
+            inp_size = self.input_size
             mods = []
             row = kernel_size[i]
             for j in xrange(len(kernel_size[i])):
