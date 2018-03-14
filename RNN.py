@@ -42,7 +42,7 @@ class RNN(nn.Module):
                 mods.append(nn.Conv1d(inp_size, num_filters, kernel, padding=pad))
                 mods.append(self.bn1)
                 mods.append(nn.ReLU())
-                inp_size = self.num_filters
+                inp_size = self.num_filters[i][j]
             self.convs.append(nn.Sequential(*mods))
 
 
