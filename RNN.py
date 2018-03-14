@@ -29,7 +29,7 @@ class RNN(nn.Module):
         self.use_gpu = use_gpu
         self.batch_size = batch_size
 
-        self.bn1 = nn.BatchNorm1d(num_filters)
+        # self.bn1 = nn.BatchNorm1d(num_filters)
         self.convs = []
 
         for i in xrange(len(kernel_size)):
