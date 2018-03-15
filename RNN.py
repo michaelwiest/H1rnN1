@@ -148,8 +148,11 @@ class RNN(nn.Module):
                 print(len(train[0]))
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
-                for t in train:
-                    print(len(t))
+                print(train)
+                print('----')
+                print(targets)
+                # for t in train:
+                #     print(len(t))
 
                 self.zero_grad()
                 self.__init_hidden()
