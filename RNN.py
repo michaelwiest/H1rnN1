@@ -89,7 +89,7 @@ class RNN(nn.Module):
         if chomp_len is not None:
             inputs = inputs[:, :, (self.first_kernel_size):]
         else:
-            inputs = inputs[:, :, 1:]
+            inputs = inputs[:, :, :-1]
         for out in outs:
             print(out.size())
         print(inputs.size())
