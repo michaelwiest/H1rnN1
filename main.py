@@ -6,10 +6,10 @@ import csv
 batch_size = 20
 # List of lists of kernel sizes. Kernels in same list are sequential
 # Kernels in separate lists happen in parallel.
-kernel_sizes = [[5, 10], [20]]
+kernel_sizes = [[4, 4, 8]]
 # Filter sizes associated with kernels above. Will throw an error if they
 # dont' match
-num_filters = [[32, 64], [64]]
+num_filters = [[32, 32, 64]]
 dilation = [0, 1, 0] # Deprecated
 lstm_hidden_units = 100
 # num_filters = 64

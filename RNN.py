@@ -84,7 +84,10 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
+
         outs = [conv(inputs)[:, :, :num_targets] for conv in self.convs]
+        inputs = inputs[:, :, (self.first_kernel_size):]
+
         outs.append(inputs)
         c = torch.cat([out for out in outs], 1)
 
@@ -144,13 +147,9 @@ class RNN(nn.Module):
                 train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
                                                                                      slice_len=slice_len,
                                                                                      padding=self.first_kernel_size)
-                print(len(train))
-                print(len(train[0]))
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
-                print(train)
-                print('----')
-                print(targets)
+
                 # for t in train:
                 #     print(len(t))
 
