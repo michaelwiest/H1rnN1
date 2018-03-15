@@ -16,7 +16,9 @@ import csv
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
-                 kernel_size, dilation, lstm_hidden, use_gpu, batch_size, n_layers=1):
+                 kernel_size, dilation, lstm_hidden, use_gpu,
+                 batch_size, n_layers=1,
+                 use_raw=True):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
@@ -28,6 +30,7 @@ class RNN(nn.Module):
         self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
+        self.use_raw = use_raw
 
         self.convs = []
         self.conv_outputs = 0
@@ -65,7 +68,9 @@ class RNN(nn.Module):
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
 
-        self.lstm_in_size = self.conv_outputs + self.input_size # +1 for raw sequence
+        self.lstm_in_size = self.conv_outputs
+        if self.use_raw:
+            self.lstm_in_size += self.input_size # +1 for raw sequence
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
@@ -93,7 +98,8 @@ class RNN(nn.Module):
         # for out in outs:
         #     print(out.size())
         # print(inputs.size())
-        outs.append(inputs)
+        if self.use_raw:
+            outs.append(inputs)
         c = torch.cat([out for out in outs], 1)
 
 
