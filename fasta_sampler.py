@@ -108,7 +108,9 @@ class FastaSampler(object):
         self.validation_years = self.validation_years[:-1]
 
     def generate_N_random_samples_and_targets(self, N, group='train',
-                                              slice_len=None):
+                                              slice_len=None,
+                                              padding=0
+                                              ):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []
@@ -125,10 +127,10 @@ class FastaSampler(object):
             targets = []
             for i, sample in enumerate(output):
                 index = np.random.randint(max(1, len(sample) - slice_len))
-                sliced = sample[index: index + slice_len]
+                sliced = sample[max(0, index - padding): index + slice_len]
                 target = sample[index + 1: index + slice_len + 1]
-                if len(sliced) < slice_len:
-                    sliced += [self.vocabulary[self.pad_char]] * (slice_len - len(sliced))
+                if len(sliced) < slice_len + padding:
+                    sliced = [self.vocabulary[self.pad_char]] * (slice_len + padding - len(sliced)) + sliced
                 if len(target) < slice_len:
                     target += [self.vocabulary[self.pad_char]] * (slice_len - len(target))
                 output[i] = sliced
