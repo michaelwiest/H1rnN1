@@ -189,7 +189,6 @@ class FastaSampler(object):
         for i, p in enumerate(pattern):
             if not i == 0 and not (p.lower() == 's' and pattern[i-1].lower() == 'w'):
                 current_year += 1
-            print(current_year)
             if p.lower() == 'w':
                 possible_winters = self.north[current_year] + self.north[current_year - 1]
                 exs = self.__get_winter_sample(N, current_year,
