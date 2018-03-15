@@ -1,0 +1,14 @@
+Use fake padding for kernal
+kernal size below 9 (start with 3 or 5)
+
+Scoring pt based on all the other points is a good sanity check
+
+Input whole sequence into CNN; take that output and sequence and input into LSTM
+(image captioning)
+
+Do exploratory analyses to see how to pick and structure a model
+- i.e. percentage of how many from one model go to next
+
+Append a number into the vector to indicate how far off the training data is from
+the actual prediction
+- It will be able to learn which is more important and which is less important
