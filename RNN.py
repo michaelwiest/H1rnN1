@@ -86,10 +86,11 @@ class RNN(nn.Module):
         # chars.
 
         outs = [conv(inputs)[:, :, :num_targets] for conv in self.convs]
-        inputs = inputs[:, :, (self.first_kernel_size):]
-        for out in outs:
-            print(out.size())
-        print(inputs.size())
+        if chomp_len is not None:
+            inputs = inputs[:, :, (self.first_kernel_size):]
+        # for out in outs:
+        #     print(out.size())
+        # print(inputs.size())
         outs.append(inputs)
         c = torch.cat([out for out in outs], 1)
 
