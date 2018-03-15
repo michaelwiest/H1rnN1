@@ -8,6 +8,9 @@ from helper import get_idx
 import difflib
 import pdb
 from helper import *
+import scipy
+from timeit import default_timer as timer
+import pickle
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -15,9 +18,9 @@ of AA sequences from the specified years. Currently can only generate
 AA sequences from a winter > summer > winter combination.
 '''
 class FastaSampler(object):
-    def __init__(self, north_fasta, south_fasta, threshold = 1,
+    def __init__(self, north_fasta, south_fasta, use_order = True,
                  start='$', end='%', delim0='&', delim1='@', pad_char='`'):
-        self.threshold = threshold
+        self.use_order = use_order
         self.start = start
         self.end = end
         self.delim0 = delim0
@@ -111,9 +114,57 @@ class FastaSampler(object):
         self.validation_years = self.validation_years[:-1]
 
     def get_data(self):
-        pdb.set_trace()
-        return self.north, self.south
+        w_upper = 5
+        w_lower = 10
+        s_upper = 10
+        s_lower = 5
+        data_mat = {}
+        num_mat = {}
+        for year in range(2010,2018):
+            data_mat[str(year)+'n']=[]
+            num_mat[str(year)+'n'] = []
+            winter = self.north[year]
+            for ind in range(len(self.north[year])):
+                sample = winter[ind]
+                if (sample['year'] == year and sample['month'] <= w_upper) or \
+                    (sample['year'] == year - 1 and sample['month'] >= w_lower):
+                    data_mat[str(year)+'n'].append(sample['seq'])
+                    if len(num_mat[str(year)+'n'])<1:
+                        num_mat[str(year)+'n'] = [self.vocabulary[c] for c in sample['seq']]
+                    else:
+                        num_mat[str(year)+'n'] = np.vstack((num_mat[str(year)+'n'],[self.vocabulary[c] for c in sample['seq']]))
 
+            data_mat[str(year)+'s']=[]
+            num_mat[str(year)+'s'] = []
+            summer = self.south[year]
+            for ind in range(len(self.south[year])):
+                sample = summer[ind]
+                if (sample['year'] == year and sample['month'] <= s_upper) or \
+                    (sample['year'] == year - 1 and sample['month'] >= s_lower):
+                    data_mat[str(year)+'s'].append(sample['seq'])
+                if len(num_mat[str(year)+'s'])<1:
+                    num_mat[str(year)+'s'] = [self.vocabulary[c] for c in sample['seq']]
+                else:
+                    num_mat[str(year)+'s'] = np.vstack((num_mat[str(year)+'s'],[self.vocabulary[c] for c in sample['seq']]))
+
+
+        return data_mat, num_mat
+
+    def compute_distances(self):
+        data_mat, num_mat = self.get_data()
+        keys = [key for key in num_mat]
+        dist_mat = {}
+        iterate = 0
+        for key in num_mat:
+            dist_mat[str(key)+str(keys[iterate+1])] = scipy.spatial.distance.cdist(num_mat[key], num_mat[keys[iterate+1]], 'hamming')
+            iterate = iterate + 1
+        print('Completed ' + str(key)+str(keys[iterate+1]) + ' years')
+        iterate = iterate + 1
+
+        # with open('dist_mat.pkl', 'w') as f:  # Python 3: open(..., 'wb')
+        #     pickle.dump(dist_mat, f)
+
+        return dist_mat
 
     def generate_N_random_samples_and_targets(self, N, group='train',slice_len=None):
         if self.train_years is None:
@@ -171,8 +222,19 @@ class FastaSampler(object):
         possible_future_winters = self.north[year] + self.north[year + 1]
 
         # Get N of the previous winters possible sequences.
+
+        if self.use_order:
+            dist_mat = self.compute_distances()
+            key1 = str(year)+'n'+str(year)+'s'
+            key2 = str(year)+'s'+str(year+1)+'n'
         while len(prev_winter_seq) < N:
             ind = np.random.randint(len(possible_prev_winters))
+            if self.use_order:
+                # ind2 is the index of the minimum distance from winter to summer of specified year
+                ind2 = argmin(dist_mat[key1][ind])
+                # ind3 is the index of minimum distance from summer to next year's winter
+                ind3 = argmin(dist_mat[key2][ind2])
+            # if ordered, select these randomly and generate next two by order
             sample = possible_prev_winters[ind]
             if (sample['year'] == year and sample['month'] <= w_upper) or \
                     (sample['year'] == year - 1 and sample['month'] >= w_lower):
@@ -183,31 +245,35 @@ class FastaSampler(object):
         ##*** instead of this, generate N random sequences and thennnn order based on function
         while len(prev_summer_seq) < N:
             ind = np.random.randint(len(possible_prev_summers))
+            if self.use_order:
+                ind = ind2
             sample = possible_prev_summers[ind]
 
             if (sample['year'] == year and sample['month'] <= s_upper and \
                     sample['month'] >= s_lower):
                 # compareseq = hamming(sample['seq'], prev_winter_seq[len(prev_summer_seq)])
                 # print(float(compareseq)/len(sample['seq']))
-                if self.threshold != 1:
-                    compareseq = hamming(sample['seq'], prev_winter_seq[len(prev_summer_seq)])
-                else:
-                    compareseq = 0
-                if float(compareseq)/len(sample['seq']) < self.threshold:
-                    prev_summer_seq.append(sample['seq'])
+                # if self.threshold != 1:
+                #     compareseq = hamming(sample['seq'], prev_winter_seq[len(prev_summer_seq)])
+                # else:
+                #     compareseq = 0
+                # if float(compareseq)/len(sample['seq']) < self.threshold:
+                prev_summer_seq.append(sample['seq'])
 
         # Get N future winter sequences.
         while len(future_winter_seq) < N:
             ind = np.random.randint(len(possible_future_winters))
+            if self.use_order:
+                ind = ind3
             sample = possible_future_winters[ind]
             if (sample['year'] == year + 1 and sample['month'] <= w_upper) or \
                     (sample['year'] == year and sample['month'] >= w_lower):
-                if self.threshold != 1:
-                    compareseq = hamming(sample['seq'], prev_summer_seq[len(future_winter_seq)])
-                else:
-                    compareseq = 0
-                if float(compareseq)/len(sample['seq']) < self.threshold:
-                    future_winter_seq.append(sample['seq'])
+                # if self.threshold != 1:
+                #     compareseq = hamming(sample['seq'], prev_summer_seq[len(future_winter_seq)])
+                # else:
+                #     compareseq = 0
+                # if float(compareseq)/len(sample['seq']) < self.threshold:
+                future_winter_seq.append(sample['seq'])
 
         # If we want the full sequence (for training) vs. if we only want
         # the first two portions (for priming for generation).
