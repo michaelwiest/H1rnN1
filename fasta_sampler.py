@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from helper import get_idx
+from collections import Counter
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -282,3 +283,15 @@ class FastaSampler(object):
             to_return += onehot_encoded
         to_return = pd.DataFrame(to_return, index=np.arange(len(data[0]['seq'])), columns=labs)
         return to_return
+
+    def get_freq_sequence(self, year, north=True, plot=False):
+        if north:
+            data = self.north[year]
+        else:
+            data = self.south[year]
+        alphabet = ''.join(list(set(''.join([s['seq'] for s in data]))))
+        all_seq = [s['seq'] for s in data]
+        data = Counter(all_seq)
+        seq_freq = data.most_common()
+        max_freq = data.most_common(1)
+        return seq_freq, max_freq
