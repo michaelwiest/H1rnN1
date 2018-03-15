@@ -31,6 +31,7 @@ class RNN(nn.Module):
 
         self.convs = []
         self.conv_outputs = 0
+        self.first_kernel_size = 0
 
         # Assuming kernel size is a list of lists. We make Sequential
         # convolutional elements for things in the same list. Later lists
@@ -41,10 +42,21 @@ class RNN(nn.Module):
             row = kernel_size[i]
             for j in xrange(len(kernel_size[i])):
                 kernel = row[j]
+                if kernel % 2 != 0:
+                    raise ValueError('Please only given even kernel sizes ' \
+                                     'for padding purposes.')
                 nf = self.num_filters[i][j]
                 pad = kernel
-                # We want a conv, batchnorm and relu after each layer.
-                mods.append(nn.Conv1d(inp_size, nf, kernel, padding=pad))
+
+                # If it's the first input layer then dont add padding Because
+                # it will be added manually with the sampler.
+                if j == 0:
+                    mods.append(nn.Conv1d(inp_size, nf, kernel))
+                    self.first_kernel_size = kernel
+                else:
+                    mods.append(nn.Conv1d(inp_size, nf, kernel,
+                                          padding=int(pad / 2)))
+                # We want a conv, batchnorm and relu after each layer.# We want a conv, batchnorm and relu after each layer.
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
                 inp_size = nf
@@ -59,16 +71,19 @@ class RNN(nn.Module):
         self.hidden = self.__init_hidden()
 
 
-    def forward(self, inputs, hidden):
+    def forward(self, inputs, hidden, chomp_len=None):
         batch_size = inputs.size(1)
         # The number of characters in the input string
-        num_elements = inputs.size(2)
+        if chomp_len is None:
+            num_targets = inputs.size(2)
+        else:
+            num_targets = chomp_len
 
         # Run through Convolutional layers. Chomp elements so our output
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [conv(inputs)[:, :, :num_elements] for conv in self.convs]
+        outs = [conv(inputs)[:, :, :num_targets] for conv in self.convs]
         outs.append(inputs)
         c = torch.cat([out for out in outs], 1)
 
@@ -125,16 +140,20 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, slice_len=slice_len)
+                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
+                                                                                     slice_len=slice_len,
+                                                                                     padding=self.first_kernel_size)
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
+                print(train.size())
+                print(targets.size())
 
                 self.zero_grad()
                 self.__init_hidden()
                 loss = 0
 
                 # Do a forward pass.
-                outputs = self.forward(train, self.hidden)
+                outputs = self.forward(train, self.hidden, chomp_len=slice_len)
                 # print(outputs.size())
 
                 # Need to skip the first entry in the predicted elements.
@@ -153,12 +172,13 @@ class RNN(nn.Module):
                     print('Loss ' + str(loss.data[0] / self.batch_size))
                     val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
                                                                                           group='validation',
-                                                                                          slice_len=slice_len)
+                                                                                          slice_len=slice_len,
+                                                                                          padding=self.first_kernel_size)
                     val = add_cuda_to_variable(val, self.use_gpu)
                     val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
 
                     self.__init_hidden()
-                    outputs_val = self.forward(val, self.hidden)
+                    outputs_val = self.forward(val, self.hidden, chomp_len=slice_len)
                     outputs_val = outputs_val
                     val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
