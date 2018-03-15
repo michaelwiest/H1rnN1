@@ -72,7 +72,7 @@ class RNN(nn.Module):
         if self.use_raw:
             self.lstm_in_size += self.input_size # +1 for raw sequence
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
+        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.05)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
@@ -89,12 +89,12 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-
         outs = [conv(inputs)[:, :, :num_targets] for conv in self.convs]
+        outs = [conv(inputs)[:, :, 1:-int(self.first_kernel_size/2)] for conv in self.convs]
         if chomp_len is not None:
             inputs = inputs[:, :, (self.first_kernel_size):]
         else:
-            inputs = inputs[:, :, :-1]
+            inputs = inputs[:, :, 1:]
         # for out in outs:
         #     print(out.size())
         # print(inputs.size())
