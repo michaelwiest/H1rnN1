@@ -90,9 +90,9 @@ class RNN(nn.Module):
             inputs = inputs[:, :, (self.first_kernel_size):]
         else:
             inputs = inputs[:, :, :-1]
-        for out in outs:
-            print(out.size())
-        print(inputs.size())
+        # for out in outs:
+        #     print(out.size())
+        # print(inputs.size())
         outs.append(inputs)
         c = torch.cat([out for out in outs], 1)
 
