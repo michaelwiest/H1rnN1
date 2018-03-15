@@ -3,7 +3,7 @@ from RNN import *
 from helper import *
 import csv
 
-batch_size = 20
+batch_size = 30
 # List of lists of kernel sizes. Kernels in same list are sequential
 # Kernels in separate lists happen in parallel.
 kernel_sizes = [[4, 4, 8]]
