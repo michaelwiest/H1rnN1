@@ -88,6 +88,8 @@ class RNN(nn.Module):
         outs = [conv(inputs)[:, :, :num_targets] for conv in self.convs]
         if chomp_len is not None:
             inputs = inputs[:, :, (self.first_kernel_size):]
+        else:
+            inputs = inputs[:, :, 1:]
         for out in outs:
             print(out.size())
         print(inputs.size())
