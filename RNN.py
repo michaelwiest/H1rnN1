@@ -144,6 +144,8 @@ class RNN(nn.Module):
                 train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
                                                                                      slice_len=slice_len,
                                                                                      padding=self.first_kernel_size)
+                print(len(train))
+                print(len(train[0]))
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
                 print(train.size())
