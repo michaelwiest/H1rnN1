@@ -123,7 +123,7 @@ class FastaSampler(object):
         if slice_len is not None:
             targets = []
             for i, sample in enumerate(output):
-                index = np.random.randint(max(1, len(sample) - slice_len + 1))
+                index = np.random.randint(max(1, len(sample) - slice_len))
                 sliced = sample[index: index + slice_len]
                 target = sample[index + 1: index + slice_len + 1]
                 if len(sliced) < slice_len:
@@ -137,14 +137,43 @@ class FastaSampler(object):
         else:
             return output, output
 
+
+    def __get_winter_sample(self, N, year, possibles, upper, lower):
+        winter_seq = []
+        while len(winter_seq) < N:
+            ind = np.random.randint(len(possibles))
+            sample = possibles[ind]
+            if (sample['year'] == year and sample['month'] <= upper) or \
+                    (sample['year'] == year - 1 and sample['month'] >= lower):
+                winter_seq.append(sample['seq'])
+        return winter_seq
+
+
+    def __get_summer_sample(self, year, possibles, upper, lower):
+        summer_seq = []
+        while len(summer_seq) < N:
+            ind = np.random.randint(len(possibles))
+            sample = possibles[ind]
+            if (sample['year'] == year and sample['month'] <= s_upper and \
+                    sample['month'] >= s_lower):
+                summer_seq.append(sample['seq'])
+        return summer_seq
+
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year.
-    def generate_N_sample_per_year(self, N, year, full=True, to_num=True):
+    def generate_N_sample_per_year(self,
+                                   N,
+                                   year,
+                                   full=True,
+                                   to_num=True,
+                                   pattern=['W', 'S', 'W']
+                                   ):
         if year not in self.north.keys() or year not in self.south.keys() or \
                 year + 1 not in self.north.keys() or year - 1 not in self.north.keys():
             raise ValueError('Specified year ({}) is not present in dataset.\n' \
                              'Maximum year is: {}'.format(year, max(self.north.keys())))
-
+        if len(pattern) > 3:
+            raise ValueError('Please only supply patterns of length 3')
         # Months bounding the flu season. w = winter. and s = summer for
         # southern hemisphere.
         w_upper = 5
@@ -152,52 +181,34 @@ class FastaSampler(object):
         s_upper = 10
         s_lower = 5
 
-
         to_return = []
-        prev_winter_seq = []
-        prev_summer_seq = []
-        future_winter_seq = []
-
-        possible_prev_winters = self.north[year] + self.north[year - 1]
-        possible_prev_summers = self.south[year]
-        possible_future_winters = self.north[year] + self.north[year + 1]
-
-        # Get N of the previous winters possible sequences.
-        while len(prev_winter_seq) < N:
-            ind = np.random.randint(len(possible_prev_winters))
-            sample = possible_prev_winters[ind]
-            if (sample['year'] == year and sample['month'] <= w_upper) or \
-                    (sample['year'] == year - 1 and sample['month'] >= w_lower):
-                prev_winter_seq.append(sample['seq'])
-
-        # Get N summer sequences from southern.
-        while len(prev_summer_seq) < N:
-            ind = np.random.randint(len(possible_prev_summers))
-            sample = possible_prev_summers[ind]
-            if (sample['year'] == year and sample['month'] <= s_upper and \
-                    sample['month'] >= s_lower):
-                prev_summer_seq.append(sample['seq'])
-
-        # Get N future winter sequences.
-        while len(future_winter_seq) < N:
-            ind = np.random.randint(len(possible_future_winters))
-            sample = possible_future_winters[ind]
-            if (sample['year'] == year + 1 and sample['month'] <= w_upper) or \
-                    (sample['year'] == year and sample['month'] >= w_lower):
-                future_winter_seq.append(sample['seq'])
+        all_seqs = []
+        current_year = year
+        for i, p in enumerate(pattern):
+            if not i == 0 and not (p.lower() == 's' and pattern[i-1].lower() == 'w'):
+                current_year += 1
+            if p.lower() == 'w':
+                possible_winters = self.north[current_year] + self.north[current_year - 1]
+                exs = self.__get_winter_sample(N, current_year,
+                                               possible_winters,
+                                               w_upper, w_lower)
+            elif p.lower() == 's':
+                possible_summers = self.south[current_year]
+                exs = self.__get_winter_sample(N, current_year,
+                                               possible_summers,
+                                               s_upper, s_lower)
+            all_seqs.append(exs)
 
         # If we want the full sequence (for training) vs. if we only want
         # the first two portions (for priming for generation).
         if full:
-            to_return = [self.start + prev_winter_seq[i] + self.delim0 +
-                        prev_summer_seq[i] + self.delim1 + future_winter_seq[i] +
-                        self.end for i in range(N)]
+            to_return = [self.start + all_seqs[0][i] + self.delim0 +
+                         all_seqs[1][i] + self.delim1 + all_seqs[2][i] +
+                         self.end for i in range(N)]
         else:
-            to_return = [self.start + prev_winter_seq[i] + self.delim0 +
-                        prev_summer_seq[i] + self.delim1 for i in range(N)]
+            to_return = [self.start + all_seqs[0][i] + self.delim0 +
+                         all_seqs[1][i] + self.delim1 for i in range(N)]
 
-        # if padding > 0:
-        #     to_return = [padding * self.pad_char + tr for tr in to_return]
         if to_num:
             to_return = [[self.vocabulary[c] for c in characters] for characters in to_return]
 
