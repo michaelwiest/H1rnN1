@@ -201,8 +201,11 @@ class FastaSampler(object):
     def __get_winter_sample(self, N, year, possibles, upper, lower, index):
         winter_seq = []
         while len(winter_seq) < N:
-            ind = np.random.randint(len(possibles))
-            sample = possibles[ind]
+            if len(index)<0:
+                ind = np.random.randint(len(possibles))
+            else:
+                ind = index:
+                sample = possibles[ind]
             if (sample['year'] == year and sample['month'] <= upper) or \
                     (sample['year'] == year - 1 and sample['month'] >= lower):
                 winter_seq.append(sample['seq'])
@@ -214,7 +217,8 @@ class FastaSampler(object):
         while len(summer_seq) < N:
             if len(index)<0:
                 ind = np.random.randint(len(possibles))
-            else ind = index:
+            else:
+                ind = index:
                 sample = possibles[ind]
             if (sample['year'] == year and sample['month'] <= s_upper and \
                     sample['month'] >= s_lower):
@@ -246,7 +250,7 @@ class FastaSampler(object):
         to_return = []
         if self.use_order:
             dist_mat = self.compute_distances()
-            if pattern[0].lower()=='w'
+            if pattern[0].lower()=='w':
                 key = [str(year)+'n'+str(year)+'s',str(year)+'s'+str(year+1)+'n']
             else:
                 key1 = [str(year)+'s'+str(year+1)+'n',str(year+1)+'n'+str(year+1)+'s']

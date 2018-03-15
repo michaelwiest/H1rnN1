@@ -222,8 +222,3 @@ class RNN(nn.Module):
         strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
         return ''.join(strlist)
         # return (''.join(strlist).replace(fasta_sampler.pad_char, '')).replace(fasta_sampler.start, '').replace(fasta_sampler.end, '')
-
-
-
-    def evaluate_predictions():
-        
