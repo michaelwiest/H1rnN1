@@ -52,6 +52,7 @@ class RNN(nn.Module):
                 # it will be added manually with the sampler.
                 if j == 0:
                     mods.append(nn.Conv1d(inp_size, nf, kernel))
+                    print('Set kernel size to {}'.format(kernel))
                     self.first_kernel_size = kernel
                 else:
                     mods.append(nn.Conv1d(inp_size, nf, kernel,
