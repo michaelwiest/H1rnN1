@@ -89,7 +89,7 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [conv(inputs)[:, :, :num_targets] for conv in self.convs]
+        # outs = [conv(inputs)[:, :, :num_targets] for conv in self.convs]
         outs = [conv(inputs)[:, :, 1:-int(self.first_kernel_size/2)] for conv in self.convs]
         if chomp_len is not None:
             inputs = inputs[:, :, (self.first_kernel_size):]

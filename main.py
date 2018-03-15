@@ -29,7 +29,7 @@ vocab = fs.vocabulary
 use_gpu = torch.cuda.is_available()
 
 rnn = RNN(1, num_filters, len(vocab.keys()), kernel_sizes, dilation, lstm_hidden_units,
-          use_gpu, batch_size, use_raw=False)
+          use_gpu, batch_size)
 
 model_name = 'model.pt'
 log_name = 'log.csv'
