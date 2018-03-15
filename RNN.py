@@ -58,8 +58,9 @@ class RNN(nn.Module):
                     print('Set kernel size to {}'.format(kernel))
                     self.first_kernel_size = kernel
                 else:
-                    mods.append(nn.Conv1d(inp_size, nf, kernel,
-                                          padding=int(pad / 2)))
+                    mods.append(nn.Conv1d(inp_size, nf, kernel
+                                          , padding=int(pad/2)
+                                          ))
                 # We want a conv, batchnorm and relu after each layer.# We want a conv, batchnorm and relu after each layer.
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
@@ -89,7 +90,10 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [conv(inputs)[:, :, 1:-int(self.first_kernel_size/2)] for conv in self.convs]
+        # outs = [conv(inputs)[:, :, 1:-int(self.first_kernel_size/2)] for conv in self.convs]
+        outs = [conv(inputs)[:, :, :] for conv in self.convs]
+        for out in outs:
+            print(out.size())
         inputs = inputs[:, :, (self.first_kernel_size):]
         if self.use_raw:
             outs.append(inputs)

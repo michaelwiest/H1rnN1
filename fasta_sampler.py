@@ -126,7 +126,7 @@ class FastaSampler(object):
             targets = []
             for i, sample in enumerate(output):
                 index = np.random.randint(max(1, len(sample) - slice_len))
-                sliced = sample[max(0, index - padding): index + slice_len]
+                sliced = sample[max(0, index - padding): index + slice_len + padding]
                 target = sample[index + 1: index + slice_len + 1]
                 if len(sliced) < slice_len + padding:
                     sliced = [self.vocabulary[self.pad_char]] * (slice_len + padding - len(sliced)) + sliced
