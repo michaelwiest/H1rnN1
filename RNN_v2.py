@@ -58,6 +58,9 @@ class RNN(nn.Module):
 
 
     def forward(self, inputs, hidden):
+
+        inputs = inputs.transpose(0,1)
+
         batch_size = inputs.shape[1]
         # The number of characters in the input string
         num_elements = inputs.shape[2]
@@ -66,11 +69,14 @@ class RNN(nn.Module):
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs_f = []
-        for n in xrange(0,inputs.shape[0]):
-            outs = [conv(inputs[n])for conv in self.convs[n]]
-            outs_f.append(inputs)
-        c = torch.cat([out for out in outs_f], 1)
+
+        # outs_f = []
+        # for n in xrange(inputs.shape[0]):
+        #     outs = self.convs[n](inputs[n, :, :].unsqueeze(-2))
+        #     outs_f.append(outs)
+
+        outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.shape[0])]
+        c = torch.cat([out for out in outs], 1)
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
@@ -123,44 +129,37 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, slice_len=slice_len)
-                train = add_cuda_to_variable(train, self.use_gpu)
+                min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size)
+
+                min2 = add_cuda_to_variable(min2, self.use_gpu)
+                min1 = add_cuda_to_variable(min1, self.use_gpu)
+                min0 = add_cuda_to_variable(min0, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
 
                 self.zero_grad()
                 self.__init_hidden()
                 loss = 0
 
-
-                a1 = np.ones((50, 566))
-                a2 = 2*np.ones((50, 566))
-                a3 = 3* np.ones((50, 566))
-
-                train = np.stack((a1,a2,a3), axis = 0)
-
-                targ = 4 * np.ones((50))
+                train = torch.stack([min2, min1, min0], 1)
 
                 # Do a forward pass.
                 outputs = self.forward(train, self.hidden)
-                # print(outputs.size())
 
-                # Need to skip the first entry in the predicted elements.
-                # and also ignore all the end elements because theyre just
-                # predicting padding.
-                # outputs = outputs[1:-self.kernel_size, :, :]
-                # reshape the targets to match.
-                targets = targ.transpose(0, 2).transpose(1, 2).long()
+                IPython.embed()
+
+                # targets = targets.transpose(0, 2).transpose(1, 2).long()
+                targets = targets.long()#.unsqueeze(-1)
 
                 for bat in range(batch_size):
-                    loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
+                    # loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
+                    loss += loss_function(outputs[:, bat, :], targets[:, bat])
                 loss.backward()
                 optimizer.step()
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
                     val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
-                                                                                          group='validation',
-                                                                                          slice_len=slice_len)
+                                                                                          group='validation')
                     val = add_cuda_to_variable(val, self.use_gpu)
                     val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
 

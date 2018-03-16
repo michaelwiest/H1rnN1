@@ -1,6 +1,6 @@
 from fasta_sampler import *
 from fasta_sampler_v2 import *
-from RNN import *
+from RNN_v2 import *
 from helper import *
 import csv
 import numpy as np
