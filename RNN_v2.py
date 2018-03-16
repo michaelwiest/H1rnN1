@@ -83,7 +83,7 @@ class RNN(nn.Module):
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
         # Repeat it so that it matches the expected input of the network.
-        chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, self.conv_outputs)
+        chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, self.lstm_in_size)
 
         _, self.hidden = self.lstm(p, hidden)
         output, self.hidden = self.lstm(chars, self.hidden)
