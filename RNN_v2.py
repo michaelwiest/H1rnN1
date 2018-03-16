@@ -17,7 +17,8 @@ import IPython
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
-                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1):
+                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1,
+                 unique_convs=False):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
@@ -28,14 +29,20 @@ class RNN(nn.Module):
         self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
+        self.unique_convs = unique_convs
 
         self.convs = []
         self.conv_outputs = 0
+        # How many time steps back to look.
+        self.num_previous_sequences = 2
 
-        # Assuming kernel size is a list of lists. We make Sequential
-        # convolutional elements for things in the same list. Later lists
-        # are parallel convolutional layers.
-        for i in xrange(1):
+        # Construct a convolutional network for each input of preceeding
+        # AA sequences.
+        if self.unique_convs:
+            num_convs = self.num_previous_sequences
+        else:
+            num_convs = 1
+        for i in xrange(num_convs):
             inp_size = self.input_size
             mods = []
             for j in xrange(len(kernel_size)):
@@ -50,7 +57,7 @@ class RNN(nn.Module):
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
 
-        self.lstm_in_size = self.conv_outputs * 2
+        self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
@@ -60,25 +67,22 @@ class RNN(nn.Module):
     def forward(self, inputs, chars, hidden):
 
         inputs = inputs.transpose(0, 1)
-        # Run through Convolutional layers. Chomp elements so our output
-        # size matches our labels. We basically want to ignore all the
-        # elements that are convolving over the padding to the right of the
-        # chars.
 
-        # Originally had separate convolutional layers for each.
-        # but not anymore.
-        outs = [self.convs[0](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
-        # print(outs[0].size())
-        # len_to_add = chars.size(1) -
+        # If we have separate convolutional networks for each previous input
+        # then use those, otherwise just use one network.
+        if unique_convs:
+            outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
+        else:
+            outs = [self.convs[0](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
+
+        # Prefix each of the outputs of the convolution with a digit representing
+        # how far back in time they are (either -2 or -1)
         for i in range(len(outs)):
-            to_add = np.full((outs[i].size(0), outs[i].size(1)), -2 + i)
+            to_add = np.full((outs[i].size(0), outs[i].size(1)), -self.num_inputs + i)
             to_add = add_cuda_to_variable(to_add, self.use_gpu).unsqueeze(-1)
-            # print(to_add.size())
             outs[i] = torch.cat([to_add, outs[i]], 2)
-            # print(outs[i].size())
-        # print(chars.size())
+
         c = torch.cat([out for out in outs], 1)
-        # print(c.size())
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
@@ -180,11 +184,6 @@ class RNN(nn.Module):
                 iterate += 1
             print('Completed Epoch ' + str(epoch))
 
-            if slice_incr_perc is not None:
-                slice_len += slice_len * slice_incr_perc
-                slice_len = int(slice_len)
-                print('Increased slice length to: {}'.format(slice_len))
-
             if save_params is not None:
                 torch.save(self.state_dict(), save_params[0])
                 with open(save_params[1], 'w+') as csvfile:
@@ -196,26 +195,29 @@ class RNN(nn.Module):
 
         return train_loss_vec, val_loss_vec
 
-    def daydream(self, primer, T, fasta_sampler, predict_len=None):
+    def daydream(self, primer, prev_observations, T, fasta_sampler, predict_len=None):
         vocab_size = len(fasta_sampler.vocabulary)
         # Have we detected an end character?
         end_found = False
         self.batch_size = 1
 
         self.__init_hidden()
-        primer_input = [fasta_sampler.vocabulary[char] for char in primer]
+        obs = [add_cuda_to_variable(o, self.use_gpu) for o in prev_observations]
+        train = torch.stack(obs, 1)
 
-        self.seq_len = len(primer_input)
+        # primer_input = [fasta_sampler.vocabulary[char] for char in primer]
+
+        self.seq_len = len(primer)
         # build hidden layer
-        inp = add_cuda_to_variable(primer_input, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-        _ = self.forward(inp, self.hidden)
+        # inp = add_cuda_to_variable(train, primer, self.use_gpu).unsqueeze(-1).transpose(0, 2)
+        # _ = self.forward(inp, self.hidden)
 
         # self.seq_len = 1
-        predicted = list(primer_input)
+        predicted = list(primer)
         if predict_len is not None:
             for p in range(predict_len):
                 inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden)[-1]
+                output = self.forward(obs, inp, self.hidden)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
@@ -223,7 +225,7 @@ class RNN(nn.Module):
         else:
             while end_found is False:
                 inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden)[-1]
+                output = self.forward(obs, inp, self.hidden)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
