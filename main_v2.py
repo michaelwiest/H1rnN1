@@ -1,27 +1,27 @@
 from fasta_sampler import *
 from fasta_sampler_v2 import *
-from RNN import *
+from RNN_v2 import *
 from helper import *
 import csv
+import numpy as np
 
-batch_size = 20
+batch_size = 30
 # List of lists of kernel sizes. Kernels in same list are sequential
 # Kernels in separate lists happen in parallel.
-kernel_sizes = [[5, 10], [20]]
+kernel_sizes = [3, 5, 7]
 # Filter sizes associated with kernels above. Will throw an error if they
 # dont' match
-num_filters = [[32, 64], [64]]
-dilation = [0, 1, 0] # Deprecated
+num_filters = [64, 64, 128]
 lstm_hidden_units = 100
 # num_filters = 64
-samples_per_epoch = 100000
-num_epochs = 5
+samples_per_epoch = 50000
+num_epochs = 15
 learning_rate = 0.005
 seq_length = 200
 seq_length_incr_perc = 0.1
 
 # Build the data handler object.
-fs = FastaSampler('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
+fs = FastaSamplerV2('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
 # Assign the validation years.
 fs.set_validation_years([2016, 2017])
 vocab = fs.vocabulary
@@ -29,7 +29,7 @@ vocab = fs.vocabulary
 
 use_gpu = torch.cuda.is_available()
 
-rnn = RNN(1, num_filters, len(vocab.keys()), kernel_sizes, dilation, lstm_hidden_units,
+rnn = RNN(1, num_filters, len(vocab.keys()), kernel_sizes, lstm_hidden_units,
           use_gpu, batch_size)
 
 model_name = 'model.pt'
