@@ -59,11 +59,11 @@ class RNN(nn.Module):
 
     def forward(self, inputs, chars, hidden):
 
-        inputs = inputs.transpose(0,1)
+        inputs = inputs.transpose(0, 1)
 
-        batch_size = inputs.shape[1]
-        # The number of characters in the input string
-        num_elements = inputs.shape[2]
+        # batch_size = inputs.shape[1]
+        # # The number of characters in the input string
+        # num_elements = inputs.shape[2]
 
         # Run through Convolutional layers. Chomp elements so our output
         # size matches our labels. We basically want to ignore all the
