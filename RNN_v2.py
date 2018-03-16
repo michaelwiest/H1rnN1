@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import random
 import pdb
 import numpy as np
-from helper import *
+from helper_v2 import *
 import csv
 import IPython
 
@@ -35,7 +35,7 @@ class RNN(nn.Module):
         # Assuming kernel size is a list of lists. We make Sequential
         # convolutional elements for things in the same list. Later lists
         # are parallel convolutional layers.
-        for i in xrange(3):
+        for i in xrange(2):
             inp_size = self.input_size
             mods = []
             for j in xrange(len(kernel_size)):
@@ -57,7 +57,7 @@ class RNN(nn.Module):
         self.hidden = self.__init_hidden()
 
 
-    def forward(self, inputs, hidden):
+    def forward(self, inputs, chars, hidden):
 
         inputs = inputs.transpose(0,1)
 
@@ -70,21 +70,34 @@ class RNN(nn.Module):
         # elements that are convolving over the padding to the right of the
         # chars.
 
-        # outs_f = []
-        # for n in xrange(inputs.shape[0]):
-        #     outs = self.convs[n](inputs[n, :, :].unsqueeze(-2))
-        #     outs_f.append(outs)
 
         outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.shape[0])]
+        # print(outs[0].size())
+        # len_to_add = chars.size(1) -
+        for i in range(len(outs)):
+            to_add = np.full((outs[i].size(0), outs[i].size(1)), -2 + i)
+            to_add = add_cuda_to_variable(to_add, self.use_gpu).unsqueeze(-1)
+            # print(to_add.size())
+            outs[i] = torch.cat([to_add, outs[i]], 2)
+            # print(outs[i].size())
+        # print(chars.size())
         c = torch.cat([out for out in outs], 1)
+        # print(c.size())
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
+        print(p.size())
+        chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, 128)
+        print(chars.size())
 
-        output, self.hidden = self.lstm(p, hidden)
+        _, self.hidden = self.lstm(p, hidden)
+        print('worked')
+        output, self.hidden = self.lstm(chars, self.hidden)
+        print('worked')
         conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
+        print(output.size())
         return F.log_softmax(output)
 
     def __init_hidden(self):
@@ -135,20 +148,19 @@ class RNN(nn.Module):
                 min1 = add_cuda_to_variable(min1, self.use_gpu)
                 min0 = add_cuda_to_variable(min0, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
-
                 self.zero_grad()
                 self.__init_hidden()
                 loss = 0
 
-                train = torch.stack([min2, min1, min0], 1)
+                train = torch.stack([min2, min1], 1)
 
                 # Do a forward pass.
-                outputs = self.forward(train, self.hidden)
+                outputs = self.forward(train, min0, self.hidden)
 
-                IPython.embed()
 
                 # targets = targets.transpose(0, 2).transpose(1, 2).long()
-                targets = targets.long()#.unsqueeze(-1)
+                targets = targets.long().transpose(0,1).unsqueeze(-1).long()
+                print(targets.size())
 
                 for bat in range(batch_size):
                     # loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
