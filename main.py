@@ -1,4 +1,5 @@
 from fasta_sampler import *
+from fasta_sampler_v2 import *
 from RNN import *
 from helper import *
 import csv
