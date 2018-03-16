@@ -78,7 +78,8 @@ class RNN(nn.Module):
         # Prefix each of the outputs of the convolution with a digit representing
         # how far back in time they are (either -2 or -1)
         for i in range(len(outs)):
-            to_add = np.full((outs[i].size(0), outs[i].size(1)), -self.num_inputs + i)
+            to_add = np.full((outs[i].size(0), outs[i].size(1)),
+                             -self.num_previous_sequences + i)
             to_add = add_cuda_to_variable(to_add, self.use_gpu).unsqueeze(-1)
             outs[i] = torch.cat([to_add, outs[i]], 2)
 
