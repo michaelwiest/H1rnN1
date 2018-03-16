@@ -33,8 +33,8 @@ class FastaSamplerV2(object):
     def __generate_vocabulary(self, vocabulary):
         vocabulary += self.start
         vocabulary += self.end
-        vocabulary += self.delim0
-        vocabulary += self.delim1
+        # vocabulary += self.delim0
+        # vocabulary += self.delim1
         self.vocabulary = get_idx(vocabulary)
         # This is for the zero padding character.
         self.vocabulary[self.pad_char] = 0
@@ -120,21 +120,12 @@ class FastaSamplerV2(object):
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
             output += self.generate_N_sample_per_year(num_samples, year)
 
-        seq_len = len(output[0][0])
-        targets = []
-        for row in range(N):
-            index = np.random.randint(seq_len)
-            sample = output[row]
-            trainer = sample[-1] # Current year's row for target
-            new_slice = trainer[:index]
-            new_slice += [0] * (seq_len - len(new_slice))
-            targets.append(trainer[index])
-            output[row][-1] = new_slice
 
         output = np.array(output)
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
-        min0 = output[:, 2, :]
+        min0 = output[:, 2, 1:]
+        targets = output[:, 2, 1:]
         return min2, min1, min0, targets
 
 
@@ -145,7 +136,7 @@ class FastaSamplerV2(object):
             sample = possibles[ind]
             if (sample['year'] == year and sample['month'] <= upper) or \
                     (sample['year'] == year - 1 and sample['month'] >= lower):
-                winter_seq.append(sample['seq'])
+                winter_seq.append(self.start + sample['seq'] + self.end)
         return winter_seq
 
 
@@ -156,7 +147,7 @@ class FastaSamplerV2(object):
             sample = possibles[ind]
             if (sample['year'] == year and sample['month'] <= s_upper and \
                     sample['month'] >= s_lower):
-                summer_seq.append(sample['seq'])
+                summer_seq.append(self.start + sample['seq'] + self.end)
         return summer_seq
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
