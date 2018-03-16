@@ -156,15 +156,21 @@ class FastaSampler(object):
         keys = sorted(keys)
         dist_mat = {}
         iterate = 0
+        index_dict = {}
         for key in keys[:-1]:
             # ith entry is first year, jth entry is second year
             # to find the second year value that most matches the first year value, argmin(data[i,:])
             dist_mat[str(key)+str(keys[iterate+1])] = scipy.spatial.distance.cdist(num_mat[key], num_mat[keys[iterate+1]], 'hamming')
-            iterate = iterate + 1
         # with open('dist_mat.pkl', 'w') as f:  # Python 3: open(..., 'wb')
         #     pickle.dump(dist_mat, f)
+            # first year is 317 samples, second year is 242 num_samples
+            # for each of the 317 samples,find the argmin over the next 242 samples
 
-        return dist_mat
+            index_dict[key] = np.argmin(dist_mat[str(key)+str(keys[iterate+1])],axis=-1)
+            iterate = iterate + 1
+
+
+        return index_dict
 
     def generate_N_random_samples_and_targets(self, N, group='train',slice_len=None):
         if self.train_years is None:
@@ -249,7 +255,6 @@ class FastaSampler(object):
 
         to_return = []
         if self.use_order:
-            dist_mat = self.compute_distances()
             if pattern[0].lower()=='w':
                 key = [str(year)+'n'+str(year)+'s',str(year)+'s'+str(year+1)+'n']
             else:
@@ -265,13 +270,19 @@ class FastaSampler(object):
                 ind, exs = self.__get_winter_sample(N, current_year,
                                                possible_winters,
                                                w_upper, w_lower, index)
+                key = str(current_year) + 'n'
             elif p.lower() == 's':
                 possible_summers = self.south[current_year]
                 ind, exs = self.__get_winter_sample(N, current_year,
                                                possible_summers,
                                                s_upper, s_lower, index)
+                key = str(current_year) + 's'
             if i<=1:
-                index = np.argmin(dist_mat[key[i]][ind])
+                try:
+                    index = index_dict[key][ind]
+                except:
+                    index_dict = self.compute_distances()
+                    index = index_dict[key][ind]
             else:
                 index = 'NA'
             all_seqs.append(exs)
