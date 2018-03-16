@@ -63,6 +63,7 @@ class RNN(nn.Module):
         self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
         self.lin1 = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
+        self.leaky_relu = nn.LeakyReLU()
 
 
     def forward(self, inputs, chars, hidden, pass_convs=True):
@@ -97,7 +98,7 @@ class RNN(nn.Module):
 
         conv_seq_len = output.size(0)
         # output = self.lin0(nn.LeakyReLU(output))
-        output = self.lin1(nn.LeakyReLU(output))
+        output = self.lin1(self.leaky_relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
 
