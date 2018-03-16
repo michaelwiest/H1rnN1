@@ -29,15 +29,6 @@ vocab = fs.vocabulary
 
 use_gpu = torch.cuda.is_available()
 
-a1 = np.ones((50, 566))
-a2 = 2*np.ones((50, 566))
-a3 = 3* np.ones((50, 566))
-
-inp = np.stack((a1,a2,a3), axis = 0)
-
-t = 4 * np.ones((50))
-
-
 rnn = RNN(1, num_filters, len(vocab.keys()), kernel_sizes, lstm_hidden_units,
           use_gpu, batch_size)
 
