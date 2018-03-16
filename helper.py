@@ -61,6 +61,7 @@ def custom_softmax(output, T):
 def hamming(str1, str2):
     assert len(str1) == len(str2)
     ne = operator.ne
+    IPython.embed()
     return sum(imap(ne, str1, str2))
 
 def get_next_sorted_sample(A, pt):

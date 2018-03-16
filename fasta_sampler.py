@@ -163,7 +163,7 @@ class FastaSampler(object):
             iterate = iterate + 1
         # with open('dist_mat.pkl', 'w') as f:  # Python 3: open(..., 'wb')
         #     pickle.dump(dist_mat, f)
-        IPython.embed()
+        #IPython.embed()
         return dist_mat
 
     def generate_N_random_samples_and_targets(self, N, group='train',slice_len=None):
