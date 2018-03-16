@@ -1,6 +1,6 @@
 from fasta_sampler import *
 from fasta_sampler_v2 import *
-from RNN import *
+from RNN_v2 import *
 from helper import *
 import csv
 import numpy as np
@@ -21,7 +21,7 @@ seq_length = 200
 seq_length_incr_perc = 0.1
 
 # Build the data handler object.
-fs = FastaSampler('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
+fs = FastaSamplerV2('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
 # Assign the validation years.
 fs.set_validation_years([2016, 2017])
 vocab = fs.vocabulary
