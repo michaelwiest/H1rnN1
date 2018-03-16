@@ -60,18 +60,13 @@ class RNN(nn.Module):
     def forward(self, inputs, chars, hidden):
 
         inputs = inputs.transpose(0, 1)
-
-        # batch_size = inputs.shape[1]
-        # # The number of characters in the input string
-        # num_elements = inputs.shape[2]
-
         # Run through Convolutional layers. Chomp elements so our output
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
 
 
-        outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.shape[0])]
+        outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
         # print(outs[0].size())
         # len_to_add = chars.size(1) -
         for i in range(len(outs)):
