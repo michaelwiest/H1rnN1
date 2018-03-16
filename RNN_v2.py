@@ -92,12 +92,12 @@ class RNN(nn.Module):
         chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, self.lstm_in_size)
 
         if pass_convs:
-            _, self.hidden = self.lstm(p, hidden)
+            _, self.hidden = self.lstm(p, self.hidden)
         output, self.hidden = self.lstm(chars, self.hidden)
 
         conv_seq_len = output.size(0)
-        output = self.lin0(F.relu(output))
-        output = self.lin1(F.relu(output))
+        output = self.lin0(nn.LeakyReLU(output))
+        output = self.lin1(nn.LeakyReLU(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
 
