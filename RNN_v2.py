@@ -35,7 +35,7 @@ class RNN(nn.Module):
         # Assuming kernel size is a list of lists. We make Sequential
         # convolutional elements for things in the same list. Later lists
         # are parallel convolutional layers.
-        for i in xrange(2):
+        for i in xrange(1):
             inp_size = self.input_size
             mods = []
             for j in xrange(len(kernel_size)):
@@ -65,8 +65,9 @@ class RNN(nn.Module):
         # elements that are convolving over the padding to the right of the
         # chars.
 
-
-        outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
+        # Originally had separate convolutional layers for each.
+        # but not anymore.
+        outs = [self.convs[0](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
         # print(outs[0].size())
         # len_to_add = chars.size(1) -
         for i in range(len(outs)):
