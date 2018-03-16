@@ -12,6 +12,7 @@ import random
 import pdb
 import numpy as np
 from helper import *
+import csv
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
@@ -22,8 +23,6 @@ class RNN(nn.Module):
         self.output_size = output_size # Number of AAs
         self.n_layers = n_layers # Defaults to one.
 
-        if kernel_size % 2 != 0:
-            raise ValueError('Please supply an even number for kernel size')
         self.kernel_size = kernel_size
         self.dilation = dilation
         self.lstm_hidden = lstm_hidden
@@ -77,10 +76,8 @@ class RNN(nn.Module):
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
 
-        # p = F(p)
         output, self.hidden = self.lstm(p, hidden)
         conv_seq_len = output.size(0)
-        # output = output.view(conv_seq_len * batch_size, -1) # Treating (conv_seq_len x batch_size) as batch_size for linear layer
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
@@ -90,10 +87,10 @@ class RNN(nn.Module):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
             if self.use_gpu:
                 self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()),
-                        Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()))
+                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()))
             else:
-                self.hidden =  (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)),
-                        Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)))
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)),
+                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)))
 
     def init_hidden():
         self.__init_hidden()
@@ -162,7 +159,7 @@ class RNN(nn.Module):
 
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
-                    outputs_val = outputs_val[1:, :, :]
+                    outputs_val = outputs_val
                     val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
@@ -189,10 +186,14 @@ class RNN(nn.Module):
 
         return train_loss_vec, val_loss_vec
 
-    def generate_predictions(self, fasta_sampler, batch_size, year, predict_len, temperature):
-        primer, targets = fasta_sampler.generate_N_sample_per_year(batch_size, year, full=False)
-        primer = add_cuda_to_variable(sample, self.use_gpu)
-        targets = add_cuda_to_variable(targets, self.use_gpu)
+    def daydream(self, primer, T, fasta_sampler, predict_len=None):
+        vocab_size = len(fasta_sampler.vocabulary)
+        # Have we detected an end character?
+        end_found = False
+        self.batch_size = 1
+
+        self.__init_hidden()
+        primer_input = [fasta_sampler.vocabulary[char] for char in primer]
 
         self.seq_len = len(primer_input)
         # build hidden layer
@@ -221,4 +222,3 @@ class RNN(nn.Module):
 
         strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
         return ''.join(strlist)
-        # return (''.join(strlist).replace(fasta_sampler.pad_char, '')).replace(fasta_sampler.start, '').replace(fasta_sampler.end, '')
