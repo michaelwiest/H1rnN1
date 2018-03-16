@@ -12,7 +12,7 @@ import scipy
 from timeit import default_timer as timer
 import pickle
 from collections import Counter
-
+import IPython
 '''
 Class for handling fasta files. It essentially generates random combinations
 of AA sequences from the specified years. Currently can only generate
@@ -149,7 +149,7 @@ class FastaSampler(object):
 
 
         return data_mat, num_mat
-
+#IPython.embed()
     def compute_distances(self):
         data_mat, num_mat = self.get_data()
         keys = [key for key in num_mat]
@@ -163,7 +163,7 @@ class FastaSampler(object):
             iterate = iterate + 1
         # with open('dist_mat.pkl', 'w') as f:  # Python 3: open(..., 'wb')
         #     pickle.dump(dist_mat, f)
-
+        IPython.embed()
         return dist_mat
 
     def generate_N_random_samples_and_targets(self, N, group='train',slice_len=None):
