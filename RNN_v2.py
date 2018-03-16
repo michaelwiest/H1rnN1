@@ -50,7 +50,7 @@ class RNN(nn.Module):
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
 
-        self.lstm_in_size = self.conv_outputs
+        self.lstm_in_size = self.conv_outputs * 2
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
