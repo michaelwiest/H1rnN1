@@ -65,7 +65,7 @@ class RNN(nn.Module):
         self.hidden = self.__init_hidden()
 
 
-    def forward(self, inputs, chars, hidden):
+    def forward(self, inputs, chars, hidden, pass_convs=True):
 
         inputs = inputs.transpose(0, 1)
 
@@ -91,7 +91,8 @@ class RNN(nn.Module):
         # Repeat it so that it matches the expected input of the network.
         chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, self.lstm_in_size)
 
-        _, self.hidden = self.lstm(p, hidden)
+        if pass_convs:
+            _, self.hidden = self.lstm(p, hidden)
         output, self.hidden = self.lstm(chars, self.hidden)
 
         conv_seq_len = output.size(0)
@@ -212,23 +213,25 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer)
         # build hidden layer
-        # inp = add_cuda_to_variable(train, primer[:-1], self.use_gpu).unsqueeze(-1).transpose(0, 2)
-        # _ = self.forward(inp, self.hidden)
+        inp = add_cuda_to_variable(train, primer[:-1], self.use_gpu)
+        _ = self.forward(inp, self.hidden)
 
         # self.seq_len = 1
         predicted = list(primer)
         if predict_len is not None:
             for p in range(predict_len):
-                inp = add_cuda_to_variable(predicted, self.use_gpu)
-                output = self.forward(train, inp, self.hidden)[-1]
+                inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
+                output = self.forward(train, inp, self.hidden,
+                                      pass_convs=False)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
 
         else:
             while end_found is False:
-                inp = add_cuda_to_variable(predicted, self.use_gpu)
-                output = self.forward(train, inp, self.hidden)[-1]
+                inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
+                output = self.forward(train, inp, self.hidden,
+                                      pass_convs=False)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
