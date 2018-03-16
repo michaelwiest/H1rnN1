@@ -11,13 +11,14 @@ import matplotlib.pyplot as plt
 import random
 import pdb
 import numpy as np
-from helper import *
+from helper_v2 import *
 import csv
 import IPython
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
-                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1):
+                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1,
+                 unique_convs=False):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
@@ -28,14 +29,20 @@ class RNN(nn.Module):
         self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
+        self.unique_convs = unique_convs
 
         self.convs = []
         self.conv_outputs = 0
+        # How many time steps back to look.
+        self.num_previous_sequences = 2
 
-        # Assuming kernel size is a list of lists. We make Sequential
-        # convolutional elements for things in the same list. Later lists
-        # are parallel convolutional layers.
-        for i in xrange(3):
+        # Construct a convolutional network for each input of preceeding
+        # AA sequences.
+        if self.unique_convs:
+            num_convs = self.num_previous_sequences
+        else:
+            num_convs = 1
+        for i in xrange(num_convs):
             inp_size = self.input_size
             mods = []
             for j in xrange(len(kernel_size)):
@@ -50,40 +57,46 @@ class RNN(nn.Module):
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
 
-        self.lstm_in_size = self.conv_outputs
+        self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
-        self.out = nn.Linear(lstm_hidden, output_size)
+        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.05)
+        self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
+        self.lin1 = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
 
-    def forward(self, inputs, hidden):
+    def forward(self, inputs, chars, hidden):
 
-        inputs = inputs.transpose(0,1)
+        inputs = inputs.transpose(0, 1)
 
-        batch_size = inputs.shape[1]
-        # The number of characters in the input string
-        num_elements = inputs.shape[2]
+        # If we have separate convolutional networks for each previous input
+        # then use those, otherwise just use one network.
+        if self.unique_convs:
+            outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
+        else:
+            outs = [self.convs[0](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
 
-        # Run through Convolutional layers. Chomp elements so our output
-        # size matches our labels. We basically want to ignore all the
-        # elements that are convolving over the padding to the right of the
-        # chars.
+        # Prefix each of the outputs of the convolution with a digit representing
+        # how far back in time they are (either -2 or -1)
+        for i in range(len(outs)):
+            to_add = np.full((outs[i].size(0), outs[i].size(1)),
+                             -self.num_previous_sequences + i)
+            to_add = add_cuda_to_variable(to_add, self.use_gpu).unsqueeze(-1)
+            outs[i] = torch.cat([to_add, outs[i]], 2)
 
-        # outs_f = []
-        # for n in xrange(inputs.shape[0]):
-        #     outs = self.convs[n](inputs[n, :, :].unsqueeze(-2))
-        #     outs_f.append(outs)
-
-        outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.shape[0])]
         c = torch.cat([out for out in outs], 1)
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
+        # Repeat it so that it matches the expected input of the network.
+        chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, self.lstm_in_size)
 
-        output, self.hidden = self.lstm(p, hidden)
+        _, self.hidden = self.lstm(p, hidden)
+        output, self.hidden = self.lstm(chars, self.hidden)
+
         conv_seq_len = output.size(0)
-        output = self.out(F.relu(output))
+        output = self.lin0(F.relu(output))
+        output = self.lin1(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
 
@@ -135,51 +148,44 @@ class RNN(nn.Module):
                 min1 = add_cuda_to_variable(min1, self.use_gpu)
                 min0 = add_cuda_to_variable(min0, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
+                train = torch.stack([min2, min1], 1)
 
                 self.zero_grad()
                 self.__init_hidden()
                 loss = 0
 
-                train = torch.stack([min2, min1, min0], 1)
-
                 # Do a forward pass.
-                outputs = self.forward(train, self.hidden)
+                outputs = self.forward(train, min0, self.hidden)
+                targets = targets.long().transpose(0,1).unsqueeze(-1).long()
 
-                IPython.embed()
-
-                # targets = targets.transpose(0, 2).transpose(1, 2).long()
-                targets = targets.long()#.unsqueeze(-1)
 
                 for bat in range(batch_size):
-                    # loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
-                    loss += loss_function(outputs[:, bat, :], targets[:, bat])
+                    loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
                 optimizer.step()
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
-                                                                                          group='validation')
-                    val = add_cuda_to_variable(val, self.use_gpu)
-                    val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
+                    min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation')
+
+                    min2 = add_cuda_to_variable(min2, self.use_gpu)
+                    min1 = add_cuda_to_variable(min1, self.use_gpu)
+                    min0 = add_cuda_to_variable(min0, self.use_gpu)
+                    targets = add_cuda_to_variable(targets, self.use_gpu)
+                    train = torch.stack([min2, min1], 1)
 
                     self.__init_hidden()
-                    outputs_val = self.forward(val, self.hidden)
+                    outputs_val = self.forward(train, min0, self.hidden)
                     outputs_val = outputs_val
-                    val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
+                    targets = targets.long().transpose(0,1).unsqueeze(-1).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
-                        val_loss += loss_function(outputs_val[:, 1, :], val_targets[:, 1, :].squeeze(1))
+                        val_loss += loss_function(outputs_val[:, bat, :], targets[:, bat, :].squeeze(1))
                     val_loss_vec.append(val_loss.data[0] / self.batch_size)
                     train_loss_vec.append(loss.data[0] / self.batch_size)
                     print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
                 iterate += 1
             print('Completed Epoch ' + str(epoch))
-
-            if slice_incr_perc is not None:
-                slice_len += slice_len * slice_incr_perc
-                slice_len = int(slice_len)
-                print('Increased slice length to: {}'.format(slice_len))
 
             if save_params is not None:
                 torch.save(self.state_dict(), save_params[0])
@@ -192,34 +198,37 @@ class RNN(nn.Module):
 
         return train_loss_vec, val_loss_vec
 
-    def daydream(self, primer, T, fasta_sampler, predict_len=None):
+    def daydream(self, primer, prev_observations, T, fasta_sampler, predict_len=None):
         vocab_size = len(fasta_sampler.vocabulary)
         # Have we detected an end character?
         end_found = False
         self.batch_size = 1
 
         self.__init_hidden()
-        primer_input = [fasta_sampler.vocabulary[char] for char in primer]
+        obs = [add_cuda_to_variable(o, self.use_gpu) for o in prev_observations]
+        train = torch.stack(obs, 1)
 
-        self.seq_len = len(primer_input)
+        # primer_input = [fasta_sampler.vocabulary[char] for char in primer]
+
+        self.seq_len = len(primer)
         # build hidden layer
-        inp = add_cuda_to_variable(primer_input, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-        _ = self.forward(inp, self.hidden)
+        # inp = add_cuda_to_variable(train, primer[:-1], self.use_gpu).unsqueeze(-1).transpose(0, 2)
+        # _ = self.forward(inp, self.hidden)
 
         # self.seq_len = 1
-        predicted = list(primer_input)
+        predicted = list(primer)
         if predict_len is not None:
             for p in range(predict_len):
-                inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden)[-1]
+                inp = add_cuda_to_variable(predicted, self.use_gpu)
+                output = self.forward(train, inp, self.hidden)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
 
         else:
             while end_found is False:
-                inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden)[-1]
+                inp = add_cuda_to_variable(predicted, self.use_gpu)
+                output = self.forward(train, inp, self.hidden)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
