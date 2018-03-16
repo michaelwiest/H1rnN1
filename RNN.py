@@ -13,10 +13,11 @@ import pdb
 import numpy as np
 from helper import *
 import csv
+import IPython
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
-                 kernel_size, dilation, lstm_hidden, use_gpu, batch_size, n_layers=1):
+                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
@@ -24,7 +25,6 @@ class RNN(nn.Module):
         self.n_layers = n_layers # Defaults to one.
 
         self.kernel_size = kernel_size
-        self.dilation = dilation
         self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
@@ -35,16 +35,14 @@ class RNN(nn.Module):
         # Assuming kernel size is a list of lists. We make Sequential
         # convolutional elements for things in the same list. Later lists
         # are parallel convolutional layers.
-        for i in xrange(len(kernel_size)):
+        for i in xrange(3):
             inp_size = self.input_size
             mods = []
-            row = kernel_size[i]
-            for j in xrange(len(kernel_size[i])):
-                kernel = row[j]
-                nf = self.num_filters[i][j]
-                pad = kernel
+            for j in xrange(len(kernel_size)):
+                kernel = kernel_size[j]
+                nf = self.num_filters[j]
                 # We want a conv, batchnorm and relu after each layer.
-                mods.append(nn.Conv1d(inp_size, nf, kernel, padding=pad))
+                mods.append(nn.Conv1d(inp_size, nf, kernel))
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
                 inp_size = nf
@@ -52,7 +50,7 @@ class RNN(nn.Module):
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
 
-        self.lstm_in_size = self.conv_outputs + self.input_size # +1 for raw sequence
+        self.lstm_in_size = self.conv_outputs
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
@@ -60,18 +58,19 @@ class RNN(nn.Module):
 
 
     def forward(self, inputs, hidden):
-        batch_size = inputs.size(1)
+        batch_size = inputs.shape[1]
         # The number of characters in the input string
-        num_elements = inputs.size(2)
+        num_elements = inputs.shape[2]
 
         # Run through Convolutional layers. Chomp elements so our output
         # size matches our labels. We basically want to ignore all the
         # elements that are convolving over the padding to the right of the
         # chars.
-        outs = [conv(inputs)[:, :, :num_elements] for conv in self.convs]
-        outs.append(inputs)
-        c = torch.cat([out for out in outs], 1)
-
+        outs_f = []
+        for n in xrange(0,inputs.shape[0]):
+            outs = [conv(inputs[n])for conv in self.convs[n]]
+            outs_f.append(inputs)
+        c = torch.cat([out for out in outs_f], 1)
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
@@ -81,7 +80,6 @@ class RNN(nn.Module):
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
-
 
     def __init_hidden(self):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
@@ -133,6 +131,15 @@ class RNN(nn.Module):
                 self.__init_hidden()
                 loss = 0
 
+
+                a1 = np.ones((50, 566))
+                a2 = 2*np.ones((50, 566))
+                a3 = 3* np.ones((50, 566))
+
+                train = np.stack((a1,a2,a3), axis = 0)
+
+                targ = 4 * np.ones((50))
+
                 # Do a forward pass.
                 outputs = self.forward(train, self.hidden)
                 # print(outputs.size())
@@ -142,7 +149,7 @@ class RNN(nn.Module):
                 # predicting padding.
                 # outputs = outputs[1:-self.kernel_size, :, :]
                 # reshape the targets to match.
-                targets = targets.transpose(0, 2).transpose(1, 2).long()
+                targets = targ.transpose(0, 2).transpose(1, 2).long()
 
                 for bat in range(batch_size):
                     loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))

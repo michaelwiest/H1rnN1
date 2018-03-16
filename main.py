@@ -2,15 +2,15 @@ from fasta_sampler import *
 from RNN import *
 from helper import *
 import csv
+import numpy as np
 
 batch_size = 20
 # List of lists of kernel sizes. Kernels in same list are sequential
 # Kernels in separate lists happen in parallel.
-kernel_sizes = [[5, 10], [20]]
+kernel_sizes = [3, 5, 7]
 # Filter sizes associated with kernels above. Will throw an error if they
 # dont' match
-num_filters = [[32, 64], [64]]
-dilation = [0, 1, 0] # Deprecated
+num_filters = [64, 64, 64]
 lstm_hidden_units = 100
 # num_filters = 64
 samples_per_epoch = 100000
@@ -28,7 +28,16 @@ vocab = fs.vocabulary
 
 use_gpu = torch.cuda.is_available()
 
-rnn = RNN(1, num_filters, len(vocab.keys()), kernel_sizes, dilation, lstm_hidden_units,
+a1 = np.ones((50, 566))
+a2 = 2*np.ones((50, 566))
+a3 = 3* np.ones((50, 566))
+
+inp = np.stack((a1,a2,a3), axis = 0)
+
+t = 4 * np.ones((50))
+
+
+rnn = RNN(1, num_filters, len(vocab.keys()), kernel_sizes, lstm_hidden_units,
           use_gpu, batch_size)
 
 model_name = 'model.pt'
