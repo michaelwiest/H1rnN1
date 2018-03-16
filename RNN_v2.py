@@ -86,18 +86,15 @@ class RNN(nn.Module):
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = c.transpose(1, 2).transpose(0, 1)
-        print(p.size())
-        chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, 128)
-        print(chars.size())
+        # Repeat it so that it matches the expected input of the network.
+        chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, self.conv_outputs)
 
         _, self.hidden = self.lstm(p, hidden)
-        print('worked')
         output, self.hidden = self.lstm(chars, self.hidden)
-        print('worked')
+
         conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
-        print(output.size())
         return F.log_softmax(output)
 
     def __init_hidden(self):
@@ -148,40 +145,39 @@ class RNN(nn.Module):
                 min1 = add_cuda_to_variable(min1, self.use_gpu)
                 min0 = add_cuda_to_variable(min0, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
+                train = torch.stack([min2, min1], 1)
+
                 self.zero_grad()
                 self.__init_hidden()
                 loss = 0
 
-                train = torch.stack([min2, min1], 1)
-
                 # Do a forward pass.
                 outputs = self.forward(train, min0, self.hidden)
-
-
-                # targets = targets.transpose(0, 2).transpose(1, 2).long()
                 targets = targets.long().transpose(0,1).unsqueeze(-1).long()
-                print(targets.size())
+
 
                 for bat in range(batch_size):
-                    # loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
-                    loss += loss_function(outputs[:, bat, :], targets[:, bat])
+                    loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
                 loss.backward()
                 optimizer.step()
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
-                                                                                          group='validation')
-                    val = add_cuda_to_variable(val, self.use_gpu)
-                    val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
+                    min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation')
+
+                    min2 = add_cuda_to_variable(min2, self.use_gpu)
+                    min1 = add_cuda_to_variable(min1, self.use_gpu)
+                    min0 = add_cuda_to_variable(min0, self.use_gpu)
+                    targets = add_cuda_to_variable(targets, self.use_gpu)
+                    train = torch.stack([min2, min1], 1)
 
                     self.__init_hidden()
-                    outputs_val = self.forward(val, self.hidden)
+                    outputs_val = self.forward(train, min0, self.hidden)
                     outputs_val = outputs_val
-                    val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
+                    targets = targets.long().transpose(0,1).unsqueeze(-1).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
-                        val_loss += loss_function(outputs_val[:, 1, :], val_targets[:, 1, :].squeeze(1))
+                        val_loss += loss_function(outputs_val[:, bat, :], targets[:, bat, :].squeeze(1))
                     val_loss_vec.append(val_loss.data[0] / self.batch_size)
                     train_loss_vec.append(loss.data[0] / self.batch_size)
                     print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
