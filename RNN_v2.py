@@ -70,7 +70,7 @@ class RNN(nn.Module):
 
         # If we have separate convolutional networks for each previous input
         # then use those, otherwise just use one network.
-        if unique_convs:
+        if self.unique_convs:
             outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
         else:
             outs = [self.convs[0](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
