@@ -5,17 +5,17 @@ from helper import *
 import csv
 import numpy as np
 
-batch_size = 20
+batch_size = 30
 # List of lists of kernel sizes. Kernels in same list are sequential
 # Kernels in separate lists happen in parallel.
 kernel_sizes = [3, 5, 7]
 # Filter sizes associated with kernels above. Will throw an error if they
 # dont' match
-num_filters = [64, 64, 64]
+num_filters = [64, 64, 128]
 lstm_hidden_units = 100
 # num_filters = 64
 samples_per_epoch = 50000
-num_epochs = 5
+num_epochs = 15
 learning_rate = 0.005
 seq_length = 200
 seq_length_incr_perc = 0.1

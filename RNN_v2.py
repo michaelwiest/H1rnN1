@@ -59,8 +59,9 @@ class RNN(nn.Module):
 
         self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
-        self.out = nn.Linear(lstm_hidden, output_size)
+        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.05)
+        self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
+        self.lin1 = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
 
@@ -94,7 +95,8 @@ class RNN(nn.Module):
         output, self.hidden = self.lstm(chars, self.hidden)
 
         conv_seq_len = output.size(0)
-        output = self.out(F.relu(output))
+        output = self.lin0(F.relu(output))
+        output = self.lin1(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
 
