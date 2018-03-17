@@ -100,7 +100,7 @@ class RNN(nn.Module):
         # print(self.hidden.size())
 
         # Repeat it so that it matches the expected input of the network.
-        aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
+        aa_string = aa_string.transpose(0, 1).unsqueeze(-1).long()
         print(conv_output.size())
         print(aa_string.size())
         output, self.hidden = self.lstm(aa_string, self.hidden)
@@ -127,9 +127,8 @@ class RNN(nn.Module):
               epochs,
               lr,
               samples_per_epoch=100000,
-              save_params=None,
-              slice_len=200,
-              slice_incr_perc=0.1):
+              save_params=None
+              ):
         np.random.seed(1)
 
         self.batch_size = batch_size
