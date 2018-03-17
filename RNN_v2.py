@@ -65,6 +65,7 @@ class RNN(nn.Module):
         self.lin0 = nn.Linear(self.conv_size, self.conv_size)
         self.lin1 = nn.Linear(self.conv_size, output_size)
         self.lin2 = nn.Linear(self.lstm_in_size, 1)
+        self.tanh = nn.Tanh()
         self.hidden = None
 
 
@@ -101,8 +102,8 @@ class RNN(nn.Module):
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         output, self.hidden = self.lstm(aa_string, self.hidden)
         conv_seq_len = output.size(0)
-        output = self.lin0(F.relu(output))
-        output = self.lin1(F.relu(output))
+        output = self.lin0(self.tanh(output))
+        output = self.lin1(self.tanh(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
 
