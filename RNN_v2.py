@@ -58,10 +58,10 @@ class RNN(nn.Module):
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
         # THis is hard coded right now but is a function of the kernels
-        conv_size = 557
+        self.conv_size = 557
         self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(1, self.lstm_in_size, conv_size, dropout=0.05)
+        self.lstm = nn.LSTM(1, self.lstm_in_size, self.conv_size, dropout=0.05)
         self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
         self.lin1 = nn.Linear(lstm_hidden, output_size)
         self.hidden = None
@@ -115,7 +115,7 @@ class RNN(nn.Module):
             # nn.ParameterList([
             #     nn.Parameter(conv) for _ in range(2)])
 
-            self.hidden = nn.parameter_list(conv, conv)
+            self.hidden = (conv, conv)
 
 
     def __init_hidden(self):
@@ -166,6 +166,7 @@ class RNN(nn.Module):
                 train = torch.stack([min2, min1], 1)
 
                 self.zero_grad()
+                self.__init_hidden()
 
                 loss = 0
 
