@@ -97,9 +97,7 @@ class RNN(nn.Module):
         # if self.hidden is None:
         if reset_hidden:
             self._set_hiden_to_conv(self.lin2(conv_output.transpose(0,2)).transpose(0,2))
-        # print(self.hidden.size())
 
-        # Repeat it so that it matches the expected input of the network.
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         output, self.hidden = self.lstm(aa_string, self.hidden)
         conv_seq_len = output.size(0)
