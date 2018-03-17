@@ -96,13 +96,12 @@ class RNN(nn.Module):
         # if self.hidden is None:
         if reset_hidden:
             self.__init_hidden(conv_output)
-            print('set hidden size')
         # print(self.hidden.size())
 
         # Repeat it so that it matches the expected input of the network.
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
-        print(conv_output.size())
         print(aa_string.size())
+        print(self.hidden.size())
         output, self.hidden = self.lstm(aa_string, self.hidden)
         print('ran through LSTM')
         conv_seq_len = output.size(0)
