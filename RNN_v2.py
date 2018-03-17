@@ -112,8 +112,7 @@ class RNN(nn.Module):
 
     def __init_hidden(self, conv):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-            self.hidden = (conv,
-                           conv)
+            self.hidden = (conv, conv)
 
     def init_hidden(self, conv_states=None):
         if conv_states is not None:
@@ -208,17 +207,14 @@ class RNN(nn.Module):
 
         return train_loss_vec, val_loss_vec
 
-    def daydream(self, primer, prev_observations, T, fasta_sampler, predict_len=None):
+    def daydream(self, primer, prev_observations, T, fasta_sampler, predict_len):
         vocab_size = len(fasta_sampler.vocabulary)
         # Have we detected an end character?
-        end_found = False
         self.batch_size = 1
 
         self.__init_hidden()
-        obs = [add_cuda_to_variable(o, self.use_gpu) for o in prev_observations]
-        train = torch.stack(obs, 1)
-
-        # primer_input = [fasta_sampler.vocabulary[char] for char in primer]
+        prev_observations = [add_cuda_to_variable(o, self.use_gpu) for o in prev_observations]
+        train = torch.stack(prev_observations, 1)
 
         self.seq_len = len(primer)
         # build hidden layer
@@ -231,22 +227,10 @@ class RNN(nn.Module):
             for p in range(predict_len):
                 inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
                 output = self.forward(train, inp, self.hidden,
-                                      pass_convs=False)[-1]
+                                      reset_hidden=False)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
-
-        else:
-            while end_found is False:
-                inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
-                output = self.forward(train, inp, self.hidden,
-                                      pass_convs=False)[-1]
-                soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu)
-                predicted.append(found_char)
-                if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
-                    end_found = True
 
         strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
         return ''.join(strlist)
-        # return (''.join(strlist).replace(fasta_sampler.pad_char, '')).replace(fasta_sampler.start, '').replace(fasta_sampler.end, '')
