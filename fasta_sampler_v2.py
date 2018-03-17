@@ -124,7 +124,7 @@ class FastaSamplerV2(object):
         output = np.array(output)
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
-        min0 = output[:, 2, 1:]
+        min0 = output[:, 2, :-1]
         targets = output[:, 2, 1:]
         return min2, min1, min0, targets
 
