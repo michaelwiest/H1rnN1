@@ -115,7 +115,8 @@ class RNN(nn.Module):
             # self.hidden = nn.ParameterList([
             #                 nn.Parameter(conv.data) for _ in range(2)])
 
-            self.hidden = (conv.data, conv.data)
+            self.hidden = (add_cuda_to_variable(conv.data, self.use_gpu),
+                           add_cuda_to_variable(conv.data, self.use_gpu))
 
 
     def __init_hidden(self):
