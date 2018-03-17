@@ -109,13 +109,8 @@ class RNN(nn.Module):
         return F.log_softmax(output)
 
     def _set_hiden_to_conv(self, conv):
-            # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-            # self.hidden = nn.ParameterList([
-            #                 nn.Parameter(conv.data) for _ in range(2)])
-
             self.hidden = (conv.contiguous(),
                            conv.contiguous())
-            print('set conv as hidden')
 
 
     def __init_hidden(self):
@@ -126,7 +121,6 @@ class RNN(nn.Module):
             else:
                 self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size)),
                                Variable(torch.zeros(1, self.batch_size, self.conv_size)))
-            print('set with zeros')
 
 
     def train(self,
