@@ -17,7 +17,7 @@ import IPython
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
-                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1,
+                 kernel_size, use_gpu, batch_size, n_layers=1,
                  unique_convs=False,
                  num_aas=567):
         super(RNN, self).__init__()
@@ -27,7 +27,6 @@ class RNN(nn.Module):
         self.n_layers = n_layers # Defaults to one.
 
         self.kernel_size = kernel_size
-        self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
         self.unique_convs = unique_convs
