@@ -62,7 +62,7 @@ class RNN(nn.Module):
         self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
         # self.lstm = nn.LSTM(1, self.lstm_in_size, self.conv_size, dropout=0.05)
-        self.lstm = nn.LSTM(1, self.conv_size, 1, dropout=0.05)
+        self.lstm = nn.LSTM(self.lstm_in_size, self.conv_size, 1, dropout=0.05)
         self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
         self.lin1 = nn.Linear(lstm_hidden, output_size)
         self.hidden = None
