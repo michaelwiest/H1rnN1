@@ -4,7 +4,7 @@ from Bio import SeqIO
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
-from helper import get_idx
+from helper_v2 import get_idx
 from collections import Counter
 
 '''

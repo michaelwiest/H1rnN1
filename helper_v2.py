@@ -13,7 +13,6 @@ def get_idx(char_data):
             word_to_ix[word] = count
             count += 1
     return word_to_ix
-    print('foo')
 
 def add_cuda_to_variable(data_nums, is_gpu):
     tensor = torch.FloatTensor(data_nums)
