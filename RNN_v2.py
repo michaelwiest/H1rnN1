@@ -18,7 +18,8 @@ import IPython
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
                  kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1,
-                 unique_convs=False):
+                 unique_convs=False,
+                 num_aas=567):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
@@ -56,16 +57,16 @@ class RNN(nn.Module):
             # This is the total number of inputs to the LSTM layer.
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
-
+        # THis is hard coded right now but is a function of the kernels
+        conv_size = 557
         self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.05)
+        self.lstm = nn.LSTM(1, self.lstm_in_size, conv_size, dropout=0.05)
         self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
         self.lin1 = nn.Linear(lstm_hidden, output_size)
-        self.hidden = self.__init_hidden()
 
 
-    def forward(self, inputs, chars, hidden, pass_convs=True):
+    def forward(self, inputs, aa_string, hidden, reset_hidden=True):
 
         inputs = inputs.transpose(0, 1)
 
@@ -84,34 +85,41 @@ class RNN(nn.Module):
             to_add = add_cuda_to_variable(to_add, self.use_gpu).unsqueeze(-1)
             outs[i] = torch.cat([to_add, outs[i]], 2)
 
-        c = torch.cat([out for out in outs], 1)
+        conv_output = torch.cat([out for out in outs], 1)
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
-        p = c.transpose(1, 2).transpose(0, 1)
+        conv_output = conv_output.transpose(1, 2).transpose(0, 1)
+
+        # If we haven't set the hidden state yet. Basically we call this when
+        # the model is trained and we want to seed it.
+        # if self.hidden is None:
+        if reset_hidden:
+            self.__init_hidden(conv_output)
+            print('set hidden size')
+        # print(self.hidden.size())
+
         # Repeat it so that it matches the expected input of the network.
-        chars = chars.transpose(0, 1).unsqueeze(-1).repeat(1, 1, self.lstm_in_size)
-
-        if pass_convs:
-            _, self.hidden = self.lstm(p, hidden)
-        output, self.hidden = self.lstm(chars, self.hidden)
-
+        aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
+        print(conv_output.size())
+        print(aa_string.size())
+        output, self.hidden = self.lstm(aa_string, self.hidden)
+        print('ran through LSTM')
         conv_seq_len = output.size(0)
         output = self.lin0(F.relu(output))
         output = self.lin1(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
 
-    def __init_hidden(self):
+    def __init_hidden(self, conv):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-            if self.use_gpu:
-                self.hidden = (Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.lstm_hidden).cuda()),
-                               Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.lstm_hidden).cuda()))
-            else:
-                self.hidden = (Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.lstm_hidden)),
-                               Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.lstm_hidden)))
+            self.hidden = (conv,
+                           conv)
 
-    def init_hidden():
-        self.__init_hidden()
+    def init_hidden(self, conv_states=None):
+        if conv_states is not None:
+            self.__init_hidden_conv(conv_states)
+        else:
+            self.__init_hidden()
 
     def train(self,
               fasta_sampler,
@@ -152,12 +160,13 @@ class RNN(nn.Module):
                 train = torch.stack([min2, min1], 1)
 
                 self.zero_grad()
-                self.__init_hidden()
+
                 loss = 0
 
                 # Do a forward pass.
-                outputs = self.forward(train, min0, self.hidden)
-                targets = targets.long().transpose(0,1).unsqueeze(-1).long()
+                outputs = self.forward(train, min0, self.hidden,
+                                       reset_hidden=True)
+                targets = targets.long().transpose(0, 1).unsqueeze(-1).long()
 
 
                 for bat in range(batch_size):
