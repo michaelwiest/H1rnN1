@@ -61,10 +61,10 @@ class RNN(nn.Module):
         self.conv_size = 557
         self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        # self.lstm = nn.LSTM(1, self.lstm_in_size, self.conv_size, dropout=0.05)
-        self.lstm = nn.LSTM(self.lstm_in_size, self.conv_size, 1, dropout=0.05)
-        self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
-        self.lin1 = nn.Linear(lstm_hidden, output_size)
+        self.lstm = nn.LSTM(1, self.conv_size, 1, dropout=0.05)
+        self.lin0 = nn.Linear(self.conv_size, self.conv_size)
+        self.lin1 = nn.Linear(self.conv_size, output_size)
+        self.lin2 = nn.Linear(self.lstm_in_size, 1)
         self.hidden = None
 
 
@@ -95,15 +95,12 @@ class RNN(nn.Module):
         # If we haven't set the hidden state yet. Basically we call this when
         # the model is trained and we want to seed it.
         # if self.hidden is None:
-        # if reset_hidden:
-        #     self._set_hiden_to_conv(conv_output)
+        if reset_hidden:
+            self._set_hiden_to_conv(self.lin2(conv_output.transpose(0,2)).transpose(0,2))
         # print(self.hidden.size())
 
         # Repeat it so that it matches the expected input of the network.
-        aa_string = aa_string.transpose(0, 1).unsqueeze(-1).transpose(0,2)
-        print(aa_string.size())
-        print(self.hidden[0].size())
-        print(conv_output.size())
+        aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         output, self.hidden = self.lstm(aa_string, self.hidden)
         conv_seq_len = output.size(0)
         output = self.lin0(F.relu(output))
@@ -124,11 +121,12 @@ class RNN(nn.Module):
     def __init_hidden(self):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
             if self.use_gpu:
-                self.hidden = (Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.conv_size).cuda()),
-                               Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.conv_size).cuda()))
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size).cuda()),
+                               Variable(torch.zeros(1, self.batch_size, self.conv_size).cuda()))
             else:
-                self.hidden = (Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.conv_size)),
-                               Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.conv_size)))
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size)),
+                               Variable(torch.zeros(1, self.batch_size, self.conv_size)))
+            print('set with zeros')
 
 
     def train(self,
