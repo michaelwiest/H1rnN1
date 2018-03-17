@@ -104,11 +104,11 @@ class RNN(nn.Module):
     def __init_hidden(self):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
             if self.use_gpu:
-                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()),
-                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()))
+                self.hidden = (Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.lstm_hidden).cuda()),
+                               Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.lstm_hidden).cuda()))
             else:
-                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)),
-                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)))
+                self.hidden = (Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.lstm_hidden)),
+                               Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.lstm_hidden)))
 
     def init_hidden():
         self.__init_hidden()
