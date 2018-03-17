@@ -69,7 +69,11 @@ class RNN(nn.Module):
         self.hidden = None
 
 
-    def forward(self, inputs, aa_string, hidden, reset_hidden=True):
+    def forward(self,
+                inputs,
+                aa_string,
+                reset_hidden=True
+                ):
 
         inputs = inputs.transpose(0, 1)
 
@@ -128,7 +132,9 @@ class RNN(nn.Module):
               epochs,
               lr,
               samples_per_epoch=100000,
-              save_params=None
+              save_params=None,
+              slice_len=200,
+              slice_incr_perc=0.1
               ):
         np.random.seed(1)
 
@@ -165,8 +171,7 @@ class RNN(nn.Module):
                 loss = 0
 
                 # Do a forward pass.
-                outputs = self.forward(train, min0, self.hidden,
-                                       reset_hidden=True)
+                outputs = self.forward(train, min0, reset_hidden=True)
                 targets = targets.long().transpose(0, 1).unsqueeze(-1).long()
 
 
@@ -177,7 +182,8 @@ class RNN(nn.Module):
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation')
+                    min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
+                                                                                                    slice_len=slice_len)
 
                     min2 = add_cuda_to_variable(min2, self.use_gpu)
                     min1 = add_cuda_to_variable(min1, self.use_gpu)
@@ -186,7 +192,7 @@ class RNN(nn.Module):
                     train = torch.stack([min2, min1], 1)
 
                     self.__init_hidden()
-                    outputs_val = self.forward(train, min0, self.hidden)
+                    outputs_val = self.forward(train, min0)
                     outputs_val = outputs_val
                     targets = targets.long().transpose(0,1).unsqueeze(-1).long()
                     val_loss = 0
@@ -197,6 +203,11 @@ class RNN(nn.Module):
                     print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
                 iterate += 1
             print('Completed Epoch ' + str(epoch))
+
+            if slice_incr_perc is not None:
+                slice_len += slice_len * slice_incr_perc
+                slice_len = int(slice_len)
+                print('Increased slice length to: {}'.format(slice_len))
 
             if save_params is not None:
                 torch.save(self.state_dict(), save_params[0])
@@ -221,15 +232,14 @@ class RNN(nn.Module):
         self.seq_len = len(primer)
         # build hidden layer
         inp = add_cuda_to_variable(primer[:-1], self.use_gpu)
-        _ = self.forward(train, inp, self.hidden)
+        _ = self.forward(train, inp)
 
         # self.seq_len = 1
         predicted = list(primer)
         if predict_len is not None:
             for p in range(predict_len):
                 inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
-                output = self.forward(train, inp, self.hidden,
-                                      reset_hidden=False)[-1]
+                output = self.forward(train, inp, reset_hidden=False)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)

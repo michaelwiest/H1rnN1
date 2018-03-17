@@ -107,7 +107,8 @@ class FastaSamplerV2(object):
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
 
-    def generate_N_random_samples_and_targets(self, N, group='train'):
+    def generate_N_random_samples_and_targets(self, N, group='train',
+                                              slice_len=None):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []
@@ -126,6 +127,19 @@ class FastaSamplerV2(object):
         min1 = output[:, 1, :]
         min0 = output[:, 2, :-1]
         targets = output[:, 2, 1:]
+
+        if slice_len is not None:
+            min0_slice = np.zeros((min0.shape[0], slice_len))
+            targets_slice = np.zeros((min0.shape[0], slice_len))
+            indices = np.random.randint(max(1, min0.shape[1] - slice_len), size=N)
+            print(min0_slice.shape)
+            for i, index in enumerate(indices):
+                min0_slice[i, :] = min0[i, index: index + slice_len]
+                targets_slice[i, :] = targets[i, index: index + slice_len]
+
+            # print indices
+            # print min0_slice
+
         return min2, min1, min0, targets
 
 
