@@ -61,7 +61,8 @@ class RNN(nn.Module):
         self.conv_size = 557
         self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(1, self.lstm_in_size, self.conv_size, dropout=0.05)
+        # self.lstm = nn.LSTM(1, self.lstm_in_size, self.conv_size, dropout=0.05)
+        self.lstm = nn.LSTM(1, self.conv_size, 1, dropout=0.05)
         self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
         self.lin1 = nn.Linear(lstm_hidden, output_size)
         self.hidden = None
@@ -99,7 +100,7 @@ class RNN(nn.Module):
         # print(self.hidden.size())
 
         # Repeat it so that it matches the expected input of the network.
-        aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
+        aa_string = aa_string.transpose(0, 1).unsqueeze(-1).transpose(0,2)
         print(aa_string.size())
         print(self.hidden[0].size())
         print(conv_output.size())
