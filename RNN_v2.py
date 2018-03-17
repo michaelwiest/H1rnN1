@@ -89,7 +89,7 @@ class RNN(nn.Module):
         conv_output = torch.cat([out for out in outs], 1)
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
-        conv_output = conv_output.transpose(1, 2).transpose(0, 1)
+        conv_output = conv_output.transpose(1, 2).transpose(0, 1).transpose(0,2)
 
         # If we haven't set the hidden state yet. Basically we call this when
         # the model is trained and we want to seed it.
@@ -117,16 +117,17 @@ class RNN(nn.Module):
 
             self.hidden = (conv.contiguous(),
                            conv.contiguous())
+            print('set conv as hidden')
 
 
     def __init_hidden(self):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
             if self.use_gpu:
-                self.hidden = (Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_in_size).cuda()),
-                               Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_in_size).cuda()))
+                self.hidden = (Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.conv_size).cuda()),
+                               Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.conv_size).cuda()))
             else:
-                self.hidden = (Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_in_size)),
-                               Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_in_size)))
+                self.hidden = (Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.conv_size)),
+                               Variable(torch.zeros(self.lstm_in_size, self.batch_size, self.conv_size)))
 
 
     def train(self,
