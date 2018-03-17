@@ -82,7 +82,7 @@ class RNN(nn.Module):
         # how far back in time they are (either -2 or -1)
         for i in range(len(outs)):
             to_add = np.full((outs[i].size(0), outs[i].size(1)),
-                             -self.num_previous_sequences + i)
+                              -self.num_previous_sequences + i)
             to_add = add_cuda_to_variable(to_add, self.use_gpu).unsqueeze(-1)
             outs[i] = torch.cat([to_add, outs[i]], 2)
 
@@ -101,7 +101,7 @@ class RNN(nn.Module):
         # Repeat it so that it matches the expected input of the network.
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         print(aa_string.size())
-        print(self.hidden[0].size())
+        print(self.hidden)
         output, self.hidden = self.lstm(aa_string, self.hidden)
         print('ran through LSTM')
         conv_seq_len = output.size(0)
