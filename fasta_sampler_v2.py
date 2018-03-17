@@ -125,8 +125,8 @@ class FastaSamplerV2(object):
         output = np.array(output)
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
-        min0 = output[:, 2, :-1]
-        targets = output[:, 2, 1:]
+        min0 = output[:, 2, :]
+        # targets = output[:, 2, 1:]
 
         if slice_len is not None:
             min0_slice = np.zeros((min0.shape[0], slice_len))
@@ -134,7 +134,7 @@ class FastaSamplerV2(object):
             indices = np.random.randint(max(1, min0.shape[1] - slice_len), size=N)
             for i, index in enumerate(indices):
                 min0_slice[i, :] = min0[i, index: index + slice_len]
-                targets_slice[i, :] = targets[i, index: index + slice_len]
+                targets_slice[i, :] = min0[i, index + 1: index + slice_len + 1]
 
             return [min2, min1], min0_slice, targets_slice
         else:

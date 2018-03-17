@@ -25,6 +25,7 @@ class RNN(nn.Module):
         self.num_filters = num_filters
         self.output_size = output_size # Number of AAs
         self.n_layers = n_layers # Defaults to one.
+        self.num_aas = num_aas
 
         self.kernel_size = kernel_size
         self.use_gpu = use_gpu
@@ -202,7 +203,7 @@ class RNN(nn.Module):
 
             if slice_incr_perc is not None:
                 slice_len += slice_len * slice_incr_perc
-                slice_len = int(slice_len)
+                slice_len = min(self.num_aas, int(slice_len))
                 print('Increased slice length to: {}'.format(slice_len))
 
             if save_params is not None:
