@@ -7,7 +7,7 @@ import pdb
 # function maps each word to an index
 def get_idx(char_data):
     word_to_ix = {}
-    count = 1
+    count = 0
     for word in char_data:
         if word not in word_to_ix:
             word_to_ix[word] = count
