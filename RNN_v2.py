@@ -100,7 +100,7 @@ class RNN(nn.Module):
         # print(self.hidden.size())
 
         # Repeat it so that it matches the expected input of the network.
-        aa_string = aa_string.transpose(0, 1).unsqueeze(-1).long()
+        aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         print(conv_output.size())
         print(aa_string.size())
         output, self.hidden = self.lstm(aa_string, self.hidden)
