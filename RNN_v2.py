@@ -170,7 +170,7 @@ class RNN(nn.Module):
                 loss = 0
 
                 # Do a forward pass.
-                outputs = self.forward(train, min0, reset_hidden=True)
+                outputs = self.forward(train, current)
                 targets = targets.long().transpose(0, 1).unsqueeze(-1).long()
 
 
@@ -189,9 +189,9 @@ class RNN(nn.Module):
                     train = torch.stack(prevs, 1)
 
                     self.__init_hidden()
-                    outputs_val = self.forward(train, min0)
+                    outputs_val = self.forward(train, current)
                     outputs_val = outputs_val
-                    targets = targets.long().transpose(0,1).unsqueeze(-1).long()
+                    targets = targets.long().transpose(0, 1).unsqueeze(-1).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
                         val_loss += loss_function(outputs_val[:, bat, :], targets[:, bat, :].squeeze(1))
