@@ -112,10 +112,10 @@ class RNN(nn.Module):
 
     def _set_hiden_to_conv(self, conv):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-            # nn.ParameterList([
-            #     nn.Parameter(conv) for _ in range(2)])
+            self.hidden = nn.ParameterList([
+                            nn.Parameter(conv) for _ in range(2)])
 
-            self.hidden = (conv, conv)
+            # self.hidden = (conv, conv)
 
 
     def __init_hidden(self):
