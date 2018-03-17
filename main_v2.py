@@ -12,7 +12,6 @@ kernel_sizes = [3, 5, 7]
 # Filter sizes associated with kernels above. Will throw an error if they
 # dont' match
 num_filters = [64, 64, 128]
-lstm_hidden_units = 100
 samples_per_epoch = 50000
 num_epochs = 15
 learning_rate = 0.005
@@ -38,6 +37,6 @@ train_loss, val_loss = rnn.train(fs, batch_size,
                                  learning_rate,
                                  samples_per_epoch=samples_per_epoch,
                                  save_params=(model_name, log_name),
-                                 seq_len=seq_len,
+                                 slice_len=seq_len,
                                  slice_incr_perc=slice_incr_perc
                                  )
