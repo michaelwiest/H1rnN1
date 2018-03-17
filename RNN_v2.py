@@ -95,7 +95,7 @@ class RNN(nn.Module):
         # the model is trained and we want to seed it.
         # if self.hidden is None:
         if reset_hidden:
-            self.__init_hidden(conv_output)
+            self._set_hiden_to_conv(conv_output)
         # print(self.hidden.size())
 
         # Repeat it so that it matches the expected input of the network.
@@ -110,18 +110,23 @@ class RNN(nn.Module):
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
 
-    def __init_hidden(self, conv):
+    def _set_hiden_to_conv(self, conv):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-            nn.ParameterList([
-                nn.Parameter(conv) for _ in range(2)])
+            # nn.ParameterList([
+            #     nn.Parameter(conv) for _ in range(2)])
 
             self.hidden = nn.parameter_list(conv, conv)
 
-    def init_hidden(self, conv_states=None):
-        if conv_states is not None:
-            self.__init_hidden_conv(conv_states)
-        else:
-            self.__init_hidden()
+
+    def __init_hidden(self):
+            # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+            if self.use_gpu:
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()),
+                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()))
+            else:
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)),
+                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)))
+
 
     def train(self,
               fasta_sampler,
