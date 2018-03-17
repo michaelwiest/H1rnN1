@@ -13,10 +13,11 @@ kernel_sizes = [3, 5, 7]
 # dont' match
 num_filters = [64, 64, 128]
 lstm_hidden_units = 100
-# num_filters = 64
 samples_per_epoch = 50000
 num_epochs = 15
 learning_rate = 0.005
+seq_len = 200
+slice_incr_perc = 0.1
 
 # Build the data handler object.
 fs = FastaSamplerV2('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
@@ -36,5 +37,7 @@ train_loss, val_loss = rnn.train(fs, batch_size,
                                  num_epochs,
                                  learning_rate,
                                  samples_per_epoch=samples_per_epoch,
-                                 save_params=(model_name, log_name)
+                                 save_params=(model_name, log_name),
+                                 seq_len=seq_len,
+                                 slice_incr_perc=slice_incr_perc
                                  )

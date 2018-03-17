@@ -136,7 +136,9 @@ class FastaSamplerV2(object):
                 min0_slice[i, :] = min0[i, index: index + slice_len]
                 targets_slice[i, :] = targets[i, index: index + slice_len]
 
-        return [min2, min1], min0, targets
+            return [min2, min1], min0_slice, targets_slice
+        else:
+            return [min2, min1], min0, targets
 
 
     def __get_winter_sample(self, N, year, possibles, upper, lower):
