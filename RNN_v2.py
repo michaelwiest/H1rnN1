@@ -103,7 +103,6 @@ class RNN(nn.Module):
         print(aa_string.size())
         print(self.hidden)
         output, self.hidden = self.lstm(aa_string, self.hidden)
-        print('ran through LSTM')
         conv_seq_len = output.size(0)
         output = self.lin0(F.relu(output))
         output = self.lin1(F.relu(output))
@@ -122,11 +121,11 @@ class RNN(nn.Module):
     def __init_hidden(self):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
             if self.use_gpu:
-                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()),
-                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden).cuda()))
+                self.hidden = (Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_hidden).cuda()),
+                               Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_hidden).cuda()))
             else:
-                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)),
-                               Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)))
+                self.hidden = (Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_hidden)),
+                               Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_hidden)))
 
 
     def train(self,
