@@ -132,15 +132,11 @@ class FastaSamplerV2(object):
             min0_slice = np.zeros((min0.shape[0], slice_len))
             targets_slice = np.zeros((min0.shape[0], slice_len))
             indices = np.random.randint(max(1, min0.shape[1] - slice_len), size=N)
-            print(min0_slice.shape)
             for i, index in enumerate(indices):
                 min0_slice[i, :] = min0[i, index: index + slice_len]
                 targets_slice[i, :] = targets[i, index: index + slice_len]
 
-            # print indices
-            # print min0_slice
-
-        return min2, min1, min0, targets
+        return [min2, min1], min0, targets
 
 
     def __get_winter_sample(self, N, year, possibles, upper, lower):

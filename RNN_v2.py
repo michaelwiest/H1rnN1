@@ -157,13 +157,12 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size)
-
-                min2 = add_cuda_to_variable(min2, self.use_gpu)
-                min1 = add_cuda_to_variable(min1, self.use_gpu)
-                min0 = add_cuda_to_variable(min0, self.use_gpu)
+                prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
+                                                                                              slice_len=slice_len)
+                prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
+                current = add_cuda_to_variable(current, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
-                train = torch.stack([min2, min1], 1)
+                train = torch.stack(prevs, 1)
 
                 self.zero_grad()
                 self.__init_hidden()
@@ -182,14 +181,12 @@ class RNN(nn.Module):
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
-                                                                                                    slice_len=slice_len)
-
-                    min2 = add_cuda_to_variable(min2, self.use_gpu)
-                    min1 = add_cuda_to_variable(min1, self.use_gpu)
-                    min0 = add_cuda_to_variable(min0, self.use_gpu)
+                    prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
+                                                                                                  slice_len=slice_len)
+                    prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
+                    current = add_cuda_to_variable(current, self.use_gpu)
                     targets = add_cuda_to_variable(targets, self.use_gpu)
-                    train = torch.stack([min2, min1], 1)
+                    train = torch.stack(prevs, 1)
 
                     self.__init_hidden()
                     outputs_val = self.forward(train, min0)
