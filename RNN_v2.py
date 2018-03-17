@@ -64,6 +64,7 @@ class RNN(nn.Module):
         self.lstm = nn.LSTM(1, self.lstm_in_size, conv_size, dropout=0.05)
         self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
         self.lin1 = nn.Linear(lstm_hidden, output_size)
+        self.hidden = None
 
 
     def forward(self, inputs, aa_string, hidden, reset_hidden=True):
