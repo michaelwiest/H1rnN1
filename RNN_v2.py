@@ -115,8 +115,8 @@ class RNN(nn.Module):
             # self.hidden = nn.ParameterList([
             #                 nn.Parameter(conv.data) for _ in range(2)])
 
-            self.hidden = (Variable(conv.data.cuda()),
-                           Variable(conv.data.cuda()))
+            self.hidden = (conv.contiguous(),
+                           conv.contiguous())
 
 
     def __init_hidden(self):
