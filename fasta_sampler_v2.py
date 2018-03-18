@@ -15,33 +15,39 @@ AA sequences from a winter > summer > winter combination.
 '''
 class FastaSamplerV2(object):
     def __init__(self, north_fasta, south_fasta,
-                 start='$', end='%', delim0='&', delim1='@', pad_char='_'):
+                 start='$', end='%', delim0='&', delim1='@', pad_char='_',
+                 specified_len=566):
         self.start = start
         self.end = end
         self.delim0 = delim0
         self.delim1 = delim1
         self.pad_char = pad_char
-        self.handle_files(north_fasta, south_fasta)
+        self.df = None
         self.train_years = None
         self.validation_years = None
+        self.specified_len = specified_len
+        self.handle_files(north_fasta, south_fasta)
+
 
     def handle_files(self, north_fasta, south_fasta):
-        self.north, v1 = self.__parse_fasta_to_list(north_fasta)
-        self.south, v2 = self.__parse_fasta_to_list(south_fasta)
+        self.north, v1 = self.__parse_fasta_to_list(north_fasta, 'north')
+        self.south, v2 = self.__parse_fasta_to_list(south_fasta, 'south')
         vocab_temp = ''.join(list(set(list(v1) + list(v2))))
         self.__generate_vocabulary(vocab_temp)
 
     def __generate_vocabulary(self, vocabulary):
+        t = len(vocabulary)
         vocabulary += self.start
         vocabulary += self.end
         # vocabulary += self.delim0
         # vocabulary += self.delim1
         self.vocabulary = get_idx(vocabulary)
+        self.num_special_chars = len(self.vocabulary.keys()) - t
         # This is for the zero padding character.
         # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
-    def __parse_fasta_to_list(self, some_fasta, specified_len=566):
+    def __parse_fasta_to_list(self, some_fasta, area):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
         data = {}
         num_missing = 0
@@ -71,7 +77,7 @@ class FastaSamplerV2(object):
                 num_missing += 1
                 continue
 
-            if len(f.seq) != specified_len:
+            if len(f.seq) != self.specified_len:
                 num_too_long += 1
                 continue
 
@@ -85,12 +91,23 @@ class FastaSamplerV2(object):
             template['day'] = day
             template['location'] = location
             template['seq'] = seq
+            template['seq_list'] = list(seq)
+            template['hemisphere'] = area
 
 
             if year not in data.keys():
                 data[year] = []
-
             data[year].append(template)
+
+
+            # print(self.df.shape)
+            # row = pd.DataFrame(np.array([f.id, area, year, month, day, location] + list(seq))).T
+            # print(row.shape)
+            # self.df = self.df.append(row)
+            # print(pd.DataFrame.from_dict(template))
+            # print(self.df.shape)
+
+
         print('Missing data: {}'.format(num_missing))
         print('Bad length data: {}'.format(num_too_long))
         # self.__generate_vocabulary(''.join(list(seqs)))
@@ -307,3 +324,29 @@ class FastaSamplerV2(object):
 
     def get_score(self, seq0, seq1):
         return hamming(seq0, seq1)
+
+
+    def to_dataframe(self, just_vals=False):
+        if self.df is None:
+            self.df = pd.DataFrame(columns=['id', 'hemisphere',
+                                            'year', 'month',
+                                            'day', 'location',
+                                            'seq', 'seq_list'
+                                            ])
+            for year, vals in self.north.iteritems():
+                self.df = self.df.append(pd.DataFrame(self.north[year]))
+            for year, vals in self.south.iteritems():
+                self.df = self.df.append(pd.DataFrame(self.south[year]))
+
+            self.df[range(self.specified_len)] = pd.DataFrame(self.df.seq_list.values.tolist(),
+                                                              index=self.df.index)
+            self.df.index = self.df.id
+            # self.df = self.df.drop()
+        if just_vals:
+            return self.df[range(self.specified_len)]
+        else:
+            return self.df
+
+
+
+pass
