@@ -106,7 +106,7 @@ class RNN(nn.Module):
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         output, self.hidden = self.lstm(aa_string, self.hidden)
         conv_seq_len = output.size(0)
-        output = self.lin0(self.tanh(output))
+        # output = self.lin0(self.tanh(output))
         output = self.lin1(self.tanh(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
