@@ -35,21 +35,5 @@ def flip_coin(probabilities, is_gpu):
     dist = abs(sp - rand_int)
     return np.argmin(dist)
 
-# Feature visualization -> Input(weights, words)
-def feat_vis(h_u, words):
-    labels = weights_to_2d(np.array(list(words)))
-    pixmap = weights_to_2d(h_u).astype(float)
-    plt.figure()
-    sns.heatmap(pixmap, annot=labels, fmt = '', cmap="coolwarm", xticklabels =False, yticklabels=False)
-    plt.show(block=False)
-
-# Convert words and weights to square array for feature visualization
-def weights_to_2d(weights):
-    dim1 = int(np.ceil(np.sqrt(len(weights))))
-    zero_pad = dim1*dim1 - len(weights) #Add zeros at end of vector if necesary to make len squared
-    weights = np.pad(weights, (0,zero_pad), 'constant')
-    return np.reshape(weights, (dim1, dim1))
-
-
 def custom_softmax(output, T):
     return torch.exp(torch.div(output, T)) / torch.sum(torch.exp(torch.div(output, T)))

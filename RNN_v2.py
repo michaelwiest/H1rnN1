@@ -164,10 +164,16 @@ class RNN(nn.Module):
                 # Get the samples and make them cuda.
                 prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
                                                                                               slice_len=slice_len)
+
                 prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
+                m = np.mean(fasta_sampler.vocabulary.values())
+                std = np.std(fasta_sampler.vocabulary.values())
+                prevs = [torch.div((c - m), std) for c in prevs]
                 current = add_cuda_to_variable(current, self.use_gpu)
+
                 targets = add_cuda_to_variable(targets, self.use_gpu)
                 train = torch.stack(prevs, 1)
+
 
                 self.zero_grad()
                 self.__init_hidden()
@@ -189,6 +195,9 @@ class RNN(nn.Module):
                     prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
                                                                                                   slice_len=slice_len)
                     prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
+                    m = np.mean(fasta_sampler.vocabulary.values())
+                    std = np.std(fasta_sampler.vocabulary.values())
+                    prevs = [torch.div((c - m), std) for c in prevs]
                     current = add_cuda_to_variable(current, self.use_gpu)
                     targets = add_cuda_to_variable(targets, self.use_gpu)
                     train = torch.stack(prevs, 1)

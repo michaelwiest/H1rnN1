@@ -8,10 +8,10 @@ import numpy as np
 batch_size = 30
 # List of lists of kernel sizes. Kernels in same list are sequential
 # Kernels in separate lists happen in parallel.
-kernel_sizes = [3, 3, 5]
+kernel_sizes = [3, 5]
 # Filter sizes associated with kernels above. Will throw an error if they
 # dont' match
-num_filters = [16, 32, 64]
+num_filters = [16, 64]
 samples_per_epoch = 50000
 num_epochs = 15
 learning_rate = 0.003
