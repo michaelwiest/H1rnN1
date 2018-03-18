@@ -19,7 +19,8 @@ class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
                  kernel_size, use_gpu, batch_size, n_layers=1,
                  unique_convs=False,
-                 num_aas=567):
+                 num_aas=568,
+                 pool=False):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
@@ -54,19 +55,22 @@ class RNN(nn.Module):
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
                 mods.append(nn.Dropout2d())
-                # mods.append(nn.MaxPool1d(2, stride=2))
+                if pool:
+                    mods.append(nn.MaxPool1d(2, stride=2))
                 inp_size = nf
             # This is the total number of inputs to the LSTM layer.
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
         # THis is hard coded right now but is a function of the kernels
-        self.conv_size = 557
-        self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
+
+        self.conv_size = self.num_aas - sum([k - 1 for k in kernel_size])
+
+        self.num_conv_filters = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(1, self.conv_size, 1, dropout=0.15)
-        self.lin0 = nn.Linear(self.conv_size, self.conv_size)
-        self.lin1 = nn.Linear(self.conv_size, output_size)
-        self.lin2 = nn.Linear(self.lstm_in_size, 1)
+        self.lstm = nn.LSTM(1, self.conv_size + 1, 1, dropout=0.15)
+        self.lin0 = nn.Linear(self.conv_size + 1, self.conv_size + 1)
+        self.lin1 = nn.Linear(self.conv_size + 1, output_size)
+        self.lin2 = nn.Linear(self.num_conv_filters, 1)
         self.tanh = nn.Tanh()
         self.hidden = None
 
@@ -95,14 +99,13 @@ class RNN(nn.Module):
 
         conv_output = torch.cat([out for out in outs], 1)
 
-
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
-        conv_output = conv_output.transpose(1, 2).transpose(0, 1).transpose(0,2)
+        conv_output = conv_output.transpose(0, 1)
         # If we haven't set the hidden state yet. Basically we call this when
         # the model is trained and we want to seed it.
         # if self.hidden is None:
         if reset_hidden:
-            self._set_hiden_to_conv(self.lin2(conv_output.transpose(0,2)).transpose(0,2))
+            self._set_hiden_to_conv(self.lin2(conv_output.transpose(0, 2)).transpose(0, 2))
 
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         output, self.hidden = self.lstm(aa_string, self.hidden)
@@ -119,12 +122,13 @@ class RNN(nn.Module):
 
     def __init_hidden(self):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+            # Add one to conv size because they're prefixed with distance vals.
             if self.use_gpu:
-                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size).cuda()),
-                               Variable(torch.zeros(1, self.batch_size, self.conv_size).cuda()))
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size + 1).cuda()),
+                               Variable(torch.zeros(1, self.batch_size, self.conv_size + 1).cuda()))
             else:
-                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size)),
-                               Variable(torch.zeros(1, self.batch_size, self.conv_size)))
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size + 1)),
+                               Variable(torch.zeros(1, self.batch_size, self.conv_size + 1)))
 
 
     def train(self,
@@ -204,7 +208,7 @@ class RNN(nn.Module):
 
             if slice_incr_perc is not None:
                 slice_len += slice_len * slice_incr_perc
-                slice_len = min(self.num_aas, int(slice_len))
+                slice_len = min(self.num_aas - 1, int(slice_len))
                 print('Increased slice length to: {}'.format(slice_len))
 
             if save_params is not None:
