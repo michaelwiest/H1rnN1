@@ -15,7 +15,7 @@ num_filters = [64, 64, 128]
 samples_per_epoch = 50000
 num_epochs = 15
 learning_rate = 0.001
-seq_len = 200
+seq_len = 100
 slice_incr_perc = 0.1
 
 # Build the data handler object.

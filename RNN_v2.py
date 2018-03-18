@@ -61,7 +61,7 @@ class RNN(nn.Module):
         self.conv_size = 557
         self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(1, self.conv_size, 1, dropout=0.05)
+        self.lstm = nn.LSTM(1, self.conv_size, 1, dropout=0.15)
         self.lin0 = nn.Linear(self.conv_size, self.conv_size)
         self.lin1 = nn.Linear(self.conv_size, output_size)
         self.lin2 = nn.Linear(self.lstm_in_size, 1)
@@ -228,14 +228,14 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer)
         # build hidden layer
-        inp = add_cuda_to_variable(primer[:-1], self.use_gpu)
-        _ = self.forward(train, inp)
+        # inp = add_cuda_to_variable(primer[:-1], self.use_gpu)
+        # _ = self.forward(train, inp)
 
         # self.seq_len = 1
         predicted = list(primer)
         if predict_len is not None:
             for p in range(predict_len):
-                inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
+                inp = add_cuda_to_variable(predicted, self.use_gpu)
                 output = self.forward(train, inp, reset_hidden=False)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)

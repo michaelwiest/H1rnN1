@@ -126,7 +126,6 @@ class FastaSamplerV2(object):
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
         min0 = output[:, 2, :]
-        # targets = output[:, 2, 1:]
 
         if slice_len is not None:
             min0_slice = np.zeros((min0.shape[0], slice_len))
@@ -138,7 +137,7 @@ class FastaSamplerV2(object):
 
             return [min2, min1], min0_slice, targets_slice
         else:
-            return [min2, min1], min0, targets
+            return [min2, min1], min0[:, :-1], min0[:, 1:]
 
 
     def __get_winter_sample(self, N, year, possibles, upper, lower):
