@@ -98,7 +98,6 @@ class RNN(nn.Module):
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         conv_output = conv_output.transpose(1, 2).transpose(0, 1).transpose(0,2)
-        print(conv_output.size())
         # If we haven't set the hidden state yet. Basically we call this when
         # the model is trained and we want to seed it.
         # if self.hidden is None:
