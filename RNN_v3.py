@@ -13,6 +13,7 @@ import pdb
 import numpy as np
 from helper import *
 import csv
+import IPython
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
@@ -104,6 +105,7 @@ class RNN(nn.Module):
               save_params=None,
               slice_len=200,
               slice_incr_perc=0.1):
+
         np.random.seed(1)
 
         self.batch_size = batch_size
@@ -128,6 +130,9 @@ class RNN(nn.Module):
                 train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, slice_len=slice_len)
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
+
+
+                IPython.embed()
 
                 self.zero_grad()
                 self.__init_hidden()
