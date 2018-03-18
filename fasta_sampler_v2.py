@@ -6,6 +6,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from helper_v2 import get_idx
 from collections import Counter
+from scipy.spatial.distance import *
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -108,7 +109,8 @@ class FastaSamplerV2(object):
         self.validation_years = self.validation_years[:-1]
 
     def generate_N_random_samples_and_targets(self, N, group='train',
-                                              slice_len=None):
+                                              slice_len=None,
+                                              to_num=True):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []
@@ -119,7 +121,9 @@ class FastaSamplerV2(object):
                 year = self.train_years[np.random.randint(len(self.train_years))]
             elif group.lower() == 'validation':
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
-            output += self.generate_N_sample_per_year(num_samples, year)
+            output += self.generate_N_sample_per_year(num_samples, year,
+                                                      to_num=to_num)
+            # print(len(output))
 
 
         output = np.array(output)
@@ -128,8 +132,12 @@ class FastaSamplerV2(object):
         min0 = output[:, 2, :]
 
         if slice_len is not None:
-            min0_slice = np.zeros((min0.shape[0], slice_len))
-            targets_slice = np.zeros((min0.shape[0], slice_len))
+            if to_num:
+                min0_slice = np.zeros((min0.shape[0], slice_len))
+                targets_slice = np.zeros((min0.shape[0], slice_len))
+            else:
+                min0_slice = np.empty((min0.shape[0], slice_len), dtype=str)
+                targets_slice = np.empty((min0.shape[0], slice_len), dtype=str)
             indices = np.random.randint(max(1, min0.shape[1] - slice_len), size=N)
             for i, index in enumerate(indices):
                 min0_slice[i, :] = min0[i, index: index + slice_len]
@@ -202,10 +210,13 @@ class FastaSamplerV2(object):
                                                s_upper, s_lower)
             all_seqs.append(exs)
         all_seqs = np.array(all_seqs).T
+        # print(all_seqs.shape)
         all_seqs = all_seqs.tolist()
+
         if to_num:
             to_return = [[[self.vocabulary[c] for c in characters] for characters in ex] for ex in all_seqs]
-
+        else:
+            to_return = [[[c for c in characters] for characters in ex] for ex in all_seqs]
         return to_return
 
 
@@ -288,3 +299,6 @@ class FastaSamplerV2(object):
         seq_freq = data.most_common()
         max_freq = data.most_common(1)
         return seq_freq, max_freq
+
+    def get_score(self, seq0, seq1):
+        return hamming(seq0, seq1)
