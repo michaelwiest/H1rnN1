@@ -110,7 +110,8 @@ class FastaSamplerV2(object):
 
     def generate_N_random_samples_and_targets(self, N, group='train',
                                               slice_len=None,
-                                              to_num=True):
+                                              to_num=True,
+                                              shift_index=True):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []
@@ -130,6 +131,7 @@ class FastaSamplerV2(object):
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
         min0 = output[:, 2, :]
+        target = output[:, 2, :]
 
         if slice_len is not None:
             if to_num:
@@ -140,13 +142,16 @@ class FastaSamplerV2(object):
                 targets_slice = np.empty((min0.shape[0], slice_len), dtype=str)
             indices = np.random.randint(max(1, min0.shape[1] - slice_len), size=N)
             for i, index in enumerate(indices):
-                min0_slice[i, :] = min0[i, index: index + slice_len]
-                targets_slice[i, :] = min0[i, index + 1: index + slice_len + 1]
+                if shift_index:
+                    min0_slice[i, :] = min0[i, index: index + slice_len]
+                    targets_slice[i, :] = min0[i, index + 1: index + slice_len + 1]
+                else:
+                    min0_slice[i, :] = min0[i, index: index + slice_len]
+                    targets_slice[i, :] = min0_slice[i, :]
 
-            return [min2, min1], min0_slice, targets_slice
-        else:
-            return [min2, min1], min0[:, :-1], min0[:, 1:]
-
+            target = targets_slice
+            min0 = min0_slice
+        return [min2, min1], min0, target
 
     def __get_winter_sample(self, N, year, possibles, upper, lower):
         winter_seq = []
