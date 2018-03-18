@@ -62,7 +62,7 @@ class RNN(nn.Module):
         self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(1, self.lstm_in_size, self.conv_size, dropout=0.05)
-        self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)
+        self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)  #should this be lstem_in_size?
         self.lin1 = nn.Linear(lstm_hidden, output_size)
         self.hidden = None
 
@@ -102,6 +102,7 @@ class RNN(nn.Module):
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         print(aa_string.size())
         print(self.hidden)
+        #embedding?
         output, self.hidden = self.lstm(aa_string, self.hidden)
         conv_seq_len = output.size(0)
         output = self.lin0(F.relu(output))
