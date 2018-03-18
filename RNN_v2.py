@@ -104,8 +104,9 @@ class RNN(nn.Module):
         # If we haven't set the hidden state yet. Basically we call this when
         # the model is trained and we want to seed it.
         # if self.hidden is None:
+        conv_output = self.lin2(conv_output.transpose(0, 2)).transpose(0, 2)
         if reset_hidden:
-            self._set_hiden_to_conv(self.lin2(conv_output.transpose(0, 2)).transpose(0, 2))
+            self._set_hiden_to_conv(conv_output)
 
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
         output, self.hidden = self.lstm(aa_string, (conv_output.contiguous(),
