@@ -108,7 +108,7 @@ class RNN(nn.Module):
             self._set_hiden_to_conv(self.lin2(conv_output.transpose(0, 2)).transpose(0, 2))
 
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
-        output, self.hidden = self.lstm(aa_string, self.hidden)
+        output, self.hidden = self.lstm(aa_string, (conv_output, conv_output))
         conv_seq_len = output.size(0)
         # output = self.lin0(self.tanh(output))
         output = self.lin1(self.tanh(output))
