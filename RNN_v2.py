@@ -17,17 +17,18 @@ import IPython
 
 class RNN(nn.Module):
     def __init__(self, input_size, num_filters, output_size,
-                 kernel_size, lstm_hidden, use_gpu, batch_size, n_layers=1,
+                 kernel_size, use_gpu, batch_size, n_layers=1,
                  unique_convs=False,
-                 num_aas=567):
+                 num_aas=568,
+                 pool=False):
         super(RNN, self).__init__()
         self.input_size = input_size # Should just be 1.
         self.num_filters = num_filters
         self.output_size = output_size # Number of AAs
         self.n_layers = n_layers # Defaults to one.
+        self.num_aas = num_aas
 
         self.kernel_size = kernel_size
-        self.lstm_hidden = lstm_hidden
         self.use_gpu = use_gpu
         self.batch_size = batch_size
         self.unique_convs = unique_convs
@@ -53,21 +54,32 @@ class RNN(nn.Module):
                 mods.append(nn.Conv1d(inp_size, nf, kernel))
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
+                mods.append(nn.Dropout2d())
+                if pool:
+                    mods.append(nn.MaxPool1d(2, stride=2))
                 inp_size = nf
             # This is the total number of inputs to the LSTM layer.
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
         # THis is hard coded right now but is a function of the kernels
-        self.conv_size = 557
-        self.lstm_in_size = self.conv_outputs * self.num_previous_sequences
+
+        self.conv_size = self.num_aas - sum([k - 1 for k in kernel_size])
+
+        self.num_conv_filters = self.conv_outputs * self.num_previous_sequences
         self.convs = nn.ModuleList(self.convs)
-        self.lstm = nn.LSTM(1, self.lstm_in_size, self.conv_size, dropout=0.05)
-        self.lin0 = nn.Linear(lstm_hidden, lstm_hidden)  #should this be lstem_in_size?
-        self.lin1 = nn.Linear(lstm_hidden, output_size)
+        self.lstm = nn.LSTM(1, self.conv_size + 1, 1, dropout=0.15)
+        self.lin0 = nn.Linear(self.conv_size + 1, self.conv_size + 1)
+        self.lin1 = nn.Linear(self.conv_size + 1, output_size)
+        self.lin2 = nn.Linear(self.num_conv_filters, 1)
+        self.tanh = nn.Tanh()
         self.hidden = None
 
 
-    def forward(self, inputs, aa_string, hidden, reset_hidden=True):
+    def forward(self,
+                inputs,
+                aa_string,
+                reset_hidden=True
+                ):
 
         inputs = inputs.transpose(0, 1)
 
@@ -77,7 +89,6 @@ class RNN(nn.Module):
             outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
         else:
             outs = [self.convs[0](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
-
         # Prefix each of the outputs of the convolution with a digit representing
         # how far back in time they are (either -2 or -1)
         for i in range(len(outs)):
@@ -89,44 +100,38 @@ class RNN(nn.Module):
         conv_output = torch.cat([out for out in outs], 1)
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
-        conv_output = conv_output.transpose(1, 2).transpose(0, 1)
-
+        conv_output = conv_output.transpose(0, 1)
         # If we haven't set the hidden state yet. Basically we call this when
         # the model is trained and we want to seed it.
         # if self.hidden is None:
+        conv_output = self.lin2(conv_output.transpose(0, 2)).transpose(0, 2)
         if reset_hidden:
             self._set_hiden_to_conv(conv_output)
-        # print(self.hidden.size())
 
-        # Repeat it so that it matches the expected input of the network.
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
-        print(aa_string.size())
-        print(self.hidden)
-        #embedding?
-        output, self.hidden = self.lstm(aa_string, self.hidden)
+        output, self.hidden = self.lstm(aa_string, (conv_output.contiguous(),
+                                                    conv_output.contiguous())
+                                        )
         conv_seq_len = output.size(0)
-        output = self.lin0(F.relu(output))
-        output = self.lin1(F.relu(output))
+        # output = self.lin0(self.tanh(output))
+        output = self.lin1(self.tanh(output))
         output = output.view(conv_seq_len, -1, self.output_size)
         return F.log_softmax(output)
 
     def _set_hiden_to_conv(self, conv):
-            # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-            # self.hidden = nn.ParameterList([
-            #                 nn.Parameter(conv.data) for _ in range(2)])
-
             self.hidden = (conv.contiguous(),
                            conv.contiguous())
 
 
     def __init_hidden(self):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+            # Add one to conv size because they're prefixed with distance vals.
             if self.use_gpu:
-                self.hidden = (Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_hidden).cuda()),
-                               Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_hidden).cuda()))
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size + 1).cuda()),
+                               Variable(torch.zeros(1, self.batch_size, self.conv_size + 1).cuda()))
             else:
-                self.hidden = (Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_hidden)),
-                               Variable(torch.zeros(self.conv_size, self.batch_size, self.lstm_hidden)))
+                self.hidden = (Variable(torch.zeros(1, self.batch_size, self.conv_size + 1)),
+                               Variable(torch.zeros(1, self.batch_size, self.conv_size + 1)))
 
 
     def train(self,
@@ -135,7 +140,9 @@ class RNN(nn.Module):
               epochs,
               lr,
               samples_per_epoch=100000,
-              save_params=None
+              save_params=None,
+              slice_len=200,
+              slice_incr_perc=0.1
               ):
         np.random.seed(1)
 
@@ -158,13 +165,18 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size)
+                prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
+                                                                                              slice_len=slice_len)
 
-                min2 = add_cuda_to_variable(min2, self.use_gpu)
-                min1 = add_cuda_to_variable(min1, self.use_gpu)
-                min0 = add_cuda_to_variable(min0, self.use_gpu)
+                prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
+                m = np.mean(fasta_sampler.vocabulary.values())
+                std = np.std(fasta_sampler.vocabulary.values())
+                prevs = [torch.div((c - m), std) for c in prevs]
+                current = add_cuda_to_variable(current, self.use_gpu)
+
                 targets = add_cuda_to_variable(targets, self.use_gpu)
-                train = torch.stack([min2, min1], 1)
+                train = torch.stack(prevs, 1)
+
 
                 self.zero_grad()
                 self.__init_hidden()
@@ -172,8 +184,7 @@ class RNN(nn.Module):
                 loss = 0
 
                 # Do a forward pass.
-                outputs = self.forward(train, min0, self.hidden,
-                                       reset_hidden=True)
+                outputs = self.forward(train, current)
                 targets = targets.long().transpose(0, 1).unsqueeze(-1).long()
 
 
@@ -184,18 +195,20 @@ class RNN(nn.Module):
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    min2, min1, min0, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation')
-
-                    min2 = add_cuda_to_variable(min2, self.use_gpu)
-                    min1 = add_cuda_to_variable(min1, self.use_gpu)
-                    min0 = add_cuda_to_variable(min0, self.use_gpu)
+                    prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
+                                                                                                  slice_len=slice_len)
+                    prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
+                    m = np.mean(fasta_sampler.vocabulary.values())
+                    std = np.std(fasta_sampler.vocabulary.values())
+                    prevs = [torch.div((c - m), std) for c in prevs]
+                    current = add_cuda_to_variable(current, self.use_gpu)
                     targets = add_cuda_to_variable(targets, self.use_gpu)
-                    train = torch.stack([min2, min1], 1)
+                    train = torch.stack(prevs, 1)
 
                     self.__init_hidden()
-                    outputs_val = self.forward(train, min0, self.hidden)
+                    outputs_val = self.forward(train, current)
                     outputs_val = outputs_val
-                    targets = targets.long().transpose(0,1).unsqueeze(-1).long()
+                    targets = targets.long().transpose(0, 1).unsqueeze(-1).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
                         val_loss += loss_function(outputs_val[:, bat, :], targets[:, bat, :].squeeze(1))
@@ -204,6 +217,11 @@ class RNN(nn.Module):
                     print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
                 iterate += 1
             print('Completed Epoch ' + str(epoch))
+
+            if slice_incr_perc is not None:
+                slice_len += slice_len * slice_incr_perc
+                slice_len = min(self.num_aas - 1, int(slice_len))
+                print('Increased slice length to: {}'.format(slice_len))
 
             if save_params is not None:
                 torch.save(self.state_dict(), save_params[0])
@@ -227,16 +245,15 @@ class RNN(nn.Module):
 
         self.seq_len = len(primer)
         # build hidden layer
-        inp = add_cuda_to_variable(primer[:-1], self.use_gpu)
-        _ = self.forward(train, inp, self.hidden)
+        # inp = add_cuda_to_variable(primer[:-1], self.use_gpu)
+        # _ = self.forward(train, inp)
 
         # self.seq_len = 1
         predicted = list(primer)
         if predict_len is not None:
             for p in range(predict_len):
-                inp = add_cuda_to_variable([predicted[-1]], self.use_gpu)
-                output = self.forward(train, inp, self.hidden,
-                                      reset_hidden=False)[-1]
+                inp = add_cuda_to_variable(predicted, self.use_gpu)
+                output = self.forward(train, inp, reset_hidden=False)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)

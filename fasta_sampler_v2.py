@@ -4,7 +4,7 @@ from Bio import SeqIO
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
-from helper import get_idx
+from helper_v2 import get_idx
 from collections import Counter
 
 '''
@@ -37,7 +37,7 @@ class FastaSamplerV2(object):
         # vocabulary += self.delim1
         self.vocabulary = get_idx(vocabulary)
         # This is for the zero padding character.
-        self.vocabulary[self.pad_char] = 0
+        # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
     def __parse_fasta_to_list(self, some_fasta, specified_len=566):
@@ -107,7 +107,8 @@ class FastaSamplerV2(object):
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
 
-    def generate_N_random_samples_and_targets(self, N, group='train'):
+    def generate_N_random_samples_and_targets(self, N, group='train',
+                                              slice_len=None):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []
@@ -124,9 +125,19 @@ class FastaSamplerV2(object):
         output = np.array(output)
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
-        min0 = output[:, 2, 1:]
-        targets = output[:, 2, 1:]
-        return min2, min1, min0, targets
+        min0 = output[:, 2, :]
+
+        if slice_len is not None:
+            min0_slice = np.zeros((min0.shape[0], slice_len))
+            targets_slice = np.zeros((min0.shape[0], slice_len))
+            indices = np.random.randint(max(1, min0.shape[1] - slice_len), size=N)
+            for i, index in enumerate(indices):
+                min0_slice[i, :] = min0[i, index: index + slice_len]
+                targets_slice[i, :] = min0[i, index + 1: index + slice_len + 1]
+
+            return [min2, min1], min0_slice, targets_slice
+        else:
+            return [min2, min1], min0[:, :-1], min0[:, 1:]
 
 
     def __get_winter_sample(self, N, year, possibles, upper, lower):
