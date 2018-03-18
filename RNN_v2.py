@@ -53,6 +53,8 @@ class RNN(nn.Module):
                 mods.append(nn.Conv1d(inp_size, nf, kernel))
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
+                mods.append(nn.Dropout2d())
+                # mods.append(nn.MaxPool1d(2, stride=2))
                 inp_size = nf
             # This is the total number of inputs to the LSTM layer.
             self.conv_outputs += nf
@@ -83,7 +85,6 @@ class RNN(nn.Module):
             outs = [self.convs[n](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
         else:
             outs = [self.convs[0](inputs[n, :, :].unsqueeze(-2)) for n in xrange(inputs.size(0))]
-
         # Prefix each of the outputs of the convolution with a digit representing
         # how far back in time they are (either -2 or -1)
         for i in range(len(outs)):
@@ -94,9 +95,10 @@ class RNN(nn.Module):
 
         conv_output = torch.cat([out for out in outs], 1)
 
+
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         conv_output = conv_output.transpose(1, 2).transpose(0, 1).transpose(0,2)
-
+        print(conv_output.size())
         # If we haven't set the hidden state yet. Basically we call this when
         # the model is trained and we want to seed it.
         # if self.hidden is None:

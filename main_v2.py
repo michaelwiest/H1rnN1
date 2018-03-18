@@ -14,7 +14,7 @@ kernel_sizes = [3, 5, 7]
 num_filters = [64, 64, 128]
 samples_per_epoch = 50000
 num_epochs = 15
-learning_rate = 0.001
+learning_rate = 0.003
 seq_len = 100
 slice_incr_perc = 0.1
 
