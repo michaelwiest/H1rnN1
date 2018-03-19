@@ -15,16 +15,17 @@ AA sequences from a winter > summer > winter combination.
 '''
 class FastaSamplerV2(object):
     def __init__(self, north_fasta, south_fasta,
-                 start='$', end='%', delim0='&', delim1='@', pad_char='_'):
+                 start='$', end='%', delim0='&', delim1='@', pad_char='_',
+                 specified_len=566):
         self.start = start
         self.end = end
         self.delim0 = delim0
         self.delim1 = delim1
         self.pad_char = pad_char
-        self.handle_files(north_fasta, south_fasta)
+        self.specified_len = specified_len
         self.train_years = None
         self.validation_years = None
-
+        self.handle_files(north_fasta, south_fasta)
     def handle_files(self, north_fasta, south_fasta):
         self.north, v1 = self.__parse_fasta_to_list(north_fasta)
         self.south, v2 = self.__parse_fasta_to_list(south_fasta)
@@ -41,7 +42,7 @@ class FastaSamplerV2(object):
         # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
-    def __parse_fasta_to_list(self, some_fasta, specified_len=566):
+    def __parse_fasta_to_list(self, some_fasta):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
         data = {}
         num_missing = 0
@@ -71,7 +72,7 @@ class FastaSamplerV2(object):
                 num_missing += 1
                 continue
 
-            if len(f.seq) != specified_len:
+            if len(f.seq) != self.specified_len:
                 num_too_long += 1
                 continue
 
