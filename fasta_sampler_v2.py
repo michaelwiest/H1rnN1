@@ -17,7 +17,7 @@ AA sequences from a winter > summer > winter combination.
 '''
 class FastaSamplerV2(object):
     def __init__(self, north_fasta, south_fasta, use_order = True, k = 10,
-                 start='$', end='%', delim0='&', delim1='@', pad_char='_'):
+                 start='$', end='%', delim0='&', delim1='@', pad_char='_',specified_len=566):
         self.k = k
         self.use_order = use_order
         self.start = start
@@ -144,7 +144,6 @@ class FastaSamplerV2(object):
             summer = self.south[year]
             for ind in range(len(self.south[year])):
                 sample = summer[ind]
-                #pdb.set_trace()
                 if (sample['year'] == year and sample['month'] <= s_upper and \
                     sample['month'] >= s_lower):
                     data_mat[str(year)+'s'].append(sample['seq'])
@@ -171,7 +170,11 @@ class FastaSamplerV2(object):
             # for each of the 317 samples,find the argmin over the next 242 samples
 
             # get the first k elements of lowest difference to randomly select between
-            index_dict[key] = np.argpartition(dist_mat[str(key)+str(keys[iterate+1])],self.k,axis=-1)[:self.k]
+            k = self.k
+            try:
+                index_dict[key] = np.argpartition(dist_mat[str(key)+str(keys[iterate+1])],k,axis=2)[:,:k]
+            except:
+                index_dict[key] = np.argpartition(dist_mat[str(key)+str(keys[iterate+1])],1,axis=1)[:,:2]
             iterate = iterate + 1
 
 
@@ -196,7 +199,6 @@ class FastaSamplerV2(object):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []
-
         while len(output) < N:
             num_samples = np.random.randint(N - len(output) + 1)
             if group.lower() == 'train':
@@ -305,11 +307,11 @@ class FastaSamplerV2(object):
 
             if i>=1 and self.use_order:
                 try:
-                    index = random.sample(self.index_dict[key][ind])
+                    index = random.choice(self.index_dict[key][ind])
                 except:
                     self.compute_distances()
                     print('computed distances')
-                    index = random.sample(self.index_dict[key][ind])
+                    index = random.choice(self.index_dict[key][ind])
             else:
                 index = 'NA'
             all_seqs.append(exs)
@@ -432,7 +434,3 @@ class FastaSamplerV2(object):
             return self.df[list(range(self.specified_len))]
         else:
             return self.df
-
-
-
-pass
