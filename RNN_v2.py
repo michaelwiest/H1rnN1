@@ -260,3 +260,31 @@ class RNN(nn.Module):
 
         strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
         return ''.join(strlist)
+
+
+    def batch_dream(self, N, primer, year, T, fasta_sampler, predict_len):
+        vocab_size = len(fasta_sampler.vocabulary)
+        # Have we detected an end character?
+        self.batch_size = 1
+
+        self.__init_hidden()
+        prev_observations = [add_cuda_to_variable(o, self.use_gpu) for o in prev_observations]
+        train = torch.stack(prev_observations, 1)
+
+        self.seq_len = len(primer)
+        # build hidden layer
+        # inp = add_cuda_to_variable(primer[:-1], self.use_gpu)
+        # _ = self.forward(train, inp)
+
+        # self.seq_len = 1
+        predicted = list(primer)
+        if predict_len is not None:
+            for p in range(predict_len):
+                inp = add_cuda_to_variable(predicted, self.use_gpu)
+                output = self.forward(train, inp, reset_hidden=False)[-1]
+                soft_out = custom_softmax(output.data.squeeze(), T)
+                found_char = flip_coin(soft_out, self.use_gpu)
+                predicted.append(found_char)
+
+        strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
+        return ''.join(strlist)
