@@ -165,7 +165,7 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
+                prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
                                                                                               slice_len=slice_len)
 
                 prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
