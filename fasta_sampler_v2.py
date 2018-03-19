@@ -4,7 +4,7 @@ from Bio import SeqIO
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
-from helper import get_idx
+from helper_v2 import get_idx
 from collections import Counter
 import scipy
 from helper import *
@@ -25,27 +25,35 @@ class FastaSamplerV2(object):
         self.delim0 = delim0
         self.delim1 = delim1
         self.pad_char = pad_char
-        self.handle_files(north_fasta, south_fasta)
+        self.df = None
         self.train_years = None
         self.validation_years = None
+        self.specified_len = specified_len
+        self.handle_files(north_fasta, south_fasta)
 
     def handle_files(self, north_fasta, south_fasta):
-        self.north, v1 = self.__parse_fasta_to_list(north_fasta)
-        self.south, v2 = self.__parse_fasta_to_list(south_fasta)
+        self.north, v1 = self.__parse_fasta_to_list(north_fasta, 'north')
+        self.south, v2 = self.__parse_fasta_to_list(south_fasta, 'south')
         vocab_temp = ''.join(list(set(list(v1) + list(v2))))
         self.__generate_vocabulary(vocab_temp)
 
     def __generate_vocabulary(self, vocabulary):
+        t = len(vocabulary)
         vocabulary += self.start
         vocabulary += self.end
         # vocabulary += self.delim0
         # vocabulary += self.delim1
         self.vocabulary = get_idx(vocabulary)
+        self.num_special_chars = len(self.vocabulary) - t
+
         # This is for the zero padding character.
-        self.vocabulary[self.pad_char] = 0
+        # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
-    def __parse_fasta_to_list(self, some_fasta, specified_len=566):
+
+
+
+    def __parse_fasta_to_list(self, some_fasta, area):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
         data = {}
         num_missing = 0
@@ -75,7 +83,7 @@ class FastaSamplerV2(object):
                 num_missing += 1
                 continue
 
-            if len(f.seq) != specified_len:
+            if len(f.seq) != self.specified_len:
                 num_too_long += 1
                 continue
 
@@ -89,12 +97,14 @@ class FastaSamplerV2(object):
             template['day'] = day
             template['location'] = location
             template['seq'] = seq
+            template['seq_list'] = list(seq)
+            template['hemisphere'] = area
 
 
             if year not in data.keys():
                 data[year] = []
-
             data[year].append(template)
+
         print('Missing data: {}'.format(num_missing))
         print('Bad length data: {}'.format(num_too_long))
         # self.__generate_vocabulary(''.join(list(seqs)))
@@ -195,8 +205,6 @@ class FastaSamplerV2(object):
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
             output += self.generate_N_sample_per_year(num_samples, year,
                                                       to_num=to_num)
-            # print(len(output))
-
 
         output = np.array(output)
         min2 = output[:, 0, :]
@@ -307,9 +315,11 @@ class FastaSamplerV2(object):
             all_seqs.append(exs)
         all_seqs = np.array(all_seqs).T
         all_seqs = all_seqs.tolist()
+
         if to_num:
             to_return = [[[self.vocabulary[c] for c in characters] for characters in ex] for ex in all_seqs]
-
+        else:
+            to_return = [[[c for c in characters] for characters in ex] for ex in all_seqs]
         return to_return
 
 
@@ -392,3 +402,37 @@ class FastaSamplerV2(object):
         seq_freq = data.most_common()
         max_freq = data.most_common(1)
         return seq_freq, max_freq
+
+    def get_score(self, seq0, seq1):
+        return hamming(seq0, seq1)
+
+
+    def to_dataframe(self, just_vals=False):
+        if self.df is None:
+            self.df = pd.DataFrame(columns=['id', 'hemisphere',
+                                            'year', 'month',
+                                            'day', 'location',
+                                            'seq', 'seq_list'
+                                            ])
+            for year, vals in self.north.items():
+                self.df = self.df.append(pd.DataFrame(self.north[year]))
+            for year, vals in self.south.items():
+                self.df = self.df.append(pd.DataFrame(self.south[year]))
+            to_add = pd.DataFrame(self.df.seq_list.values.tolist(),
+                                  index=self.df.index)
+
+            for col in to_add.columns:
+                to_add[col] = to_add[col].astype('category')
+
+            self.df[list(range(self.specified_len))] = to_add
+
+            self.df.index = self.df.id
+
+        if just_vals:
+            return self.df[list(range(self.specified_len))]
+        else:
+            return self.df
+
+
+
+pass

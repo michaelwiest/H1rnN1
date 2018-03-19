@@ -7,7 +7,7 @@ import pdb
 # function maps each word to an index
 def get_idx(char_data):
     word_to_ix = {}
-    count = 1
+    count = 0
     for word in char_data:
         if word not in word_to_ix:
             word_to_ix[word] = count
@@ -35,21 +35,18 @@ def flip_coin(probabilities, is_gpu):
     dist = abs(sp - rand_int)
     return np.argmin(dist)
 
-# Feature visualization -> Input(weights, words)
-def feat_vis(h_u, words):
-    labels = weights_to_2d(np.array(list(words)))
-    pixmap = weights_to_2d(h_u).astype(float)
-    plt.figure()
-    sns.heatmap(pixmap, annot=labels, fmt = '', cmap="coolwarm", xticklabels =False, yticklabels=False)
-    plt.show(block=False)
-
-# Convert words and weights to square array for feature visualization
-def weights_to_2d(weights):
-    dim1 = int(np.ceil(np.sqrt(len(weights))))
-    zero_pad = dim1*dim1 - len(weights) #Add zeros at end of vector if necesary to make len squared
-    weights = np.pad(weights, (0,zero_pad), 'constant')
-    return np.reshape(weights, (dim1, dim1))
-
+def flip_coin_batch(probabilities, is_gpu):
+    stacked_probs = np.cumsum(probabilities)
+    N = probabilities.size(0)
+    v_size = probabilities.size(1)
+    rand_int = np.array([np.random.random(N)]).T
+    rand_int = rand_int.repeat(v_size, axis=1)
+    if is_gpu:
+        sp = stacked_probs[0].cpu().numpy()
+    else:
+        sp = stacked_probs.numpy()
+    dist = abs(sp - rand_int)
+    return np.array([np.argmin(dist, axis=1)]).T
 
 def custom_softmax(output, T):
     return torch.exp(torch.div(output, T)) / torch.sum(torch.exp(torch.div(output, T)))
