@@ -220,7 +220,7 @@ class RNN(nn.Module):
         # build hidden layer
         inp = add_cuda_to_variable(primer_input, self.use_gpu).unsqueeze(-1).transpose(0, 2)
         _ = self.forward(inp, self.hidden)
-
+        print('foo)
         # self.seq_len = 1
         predicted = list(primer_input)
         if predict_len is not None:
