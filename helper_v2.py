@@ -37,3 +37,9 @@ def flip_coin(probabilities, is_gpu):
 
 def custom_softmax(output, T):
     return torch.exp(torch.div(output, T)) / torch.sum(torch.exp(torch.div(output, T)))
+
+def custom_softmax2(output, T):
+    exp_i = torch.exp(output/ T)
+    divider = torch.sum(exp_i,1)
+    divider = divider.expand(output.size(1), len(divider)).transpose(0,1)
+    return exp_i/ divider

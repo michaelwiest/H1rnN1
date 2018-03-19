@@ -63,9 +63,6 @@ class RNN(nn.Module):
 
     def forward(self, inputs, hidden):
 
-
-        # IPython.embed()
-
         # inputs = [min2, min1] years
         batch_size = inputs.shape[2]
         # The number of characters in the input string
@@ -105,7 +102,7 @@ class RNN(nn.Module):
                 self.hidden = (Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)),
                                Variable(torch.zeros(1, self.batch_size, self.lstm_hidden)))
 
-    def init_hidden():
+    def init_hidden(self):
         self.__init_hidden()
 
     def train(self,
@@ -117,6 +114,7 @@ class RNN(nn.Module):
               save_params=None,
               slice_len=200,
               slice_incr_perc=0.1):
+
 
         np.random.seed(1)
 
@@ -159,7 +157,6 @@ class RNN(nn.Module):
                 # outputs = outputs[1:-self.kernel_size, :, :]
                 # reshape the targets to match.
 
-                # IPython.embed()
                 targets = targets.permute(1,0).unsqueeze(2).long()
 
                 for bat in range(batch_size):
@@ -174,8 +171,6 @@ class RNN(nn.Module):
                                                                                           slice_len=slice_len)
                     val = add_cuda_to_variable(val, self.use_gpu)
                     val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
-
-                    # IPython.embed()
 
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
@@ -208,39 +203,64 @@ class RNN(nn.Module):
         return train_loss_vec, val_loss_vec
 
     def daydream(self, primer, T, fasta_sampler, predict_len=None):
+
+        # ex = fs.generate_N_sample_per_year(1, 2012, full=False, to_num=False)[0]
+        # train, targets, _ = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, slice_len=slice_len)
+
+        prev_year2 = primer[0][:]
+        prev_year1 = primer[1][:]
+        current_year = primer[2][:]
+
         vocab_size = len(fasta_sampler.vocabulary)
         # Have we detected an end character?
         end_found = False
         self.batch_size = 1
 
-        self.__init_hidden()
-        primer_input = [fasta_sampler.vocabulary[char] for char in primer]
+        primer_input2 = [fasta_sampler.vocabulary[char] for char in prev_year2]
+        primer_input1 = [fasta_sampler.vocabulary[char] for char in prev_year1]
+        primer_input = [primer_input2,primer_input1]
 
-        self.seq_len = len(primer_input)
-        # build hidden layer
-        inp = add_cuda_to_variable(primer_input, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-        _ = self.forward(inp, self.hidden)
-        print('foo)
-        # self.seq_len = 1
-        predicted = list(primer_input)
-        if predict_len is not None:
-            for p in range(predict_len):
-                inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden)[-1]
-                soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu)
-                predicted.append(found_char)
+        primer_input = add_cuda_to_variable(primer_input, self.use_gpu).unsqueeze(2)
 
-        else:
-            while end_found is False:
-                inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
-                output = self.forward(inp, self.hidden)[-1]
-                soft_out = custom_softmax(output.data.squeeze(), T)
-                found_char = flip_coin(soft_out, self.use_gpu)
-                predicted.append(found_char)
-                if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
-                    end_found = True
+        # current_output = [fasta_sampler.vocabulary[char] for char in current_year]
+        # current_output = add_cuda_to_variable(current_output, self.use_gpu)
 
-        strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
+        self.init_hidden()
+        self.zero_grad()
+        loss = 0
+
+        # Do a forward pass.
+        predictions = self.forward(primer_input, self.hidden)
+        predictions = predictions.data.squeeze()
+
+        soft_out = custom_softmax2(predictions, T)
+        pred_seq = np.argmax(soft_out, axis=1)
+
+        strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in pred_seq]
+
+        # found_char = flip_coin(soft_out, self.use_gpu)
+
+
+        # # self.seq_len = 1
+        # predicted = list(primer_input)
+        # if predict_len is not None:
+        #     for p in range(predict_len):
+        #         inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
+        #         output = self.forward(inp, self.hidden)[-1]
+        #         soft_out = custom_softmax(output.data.squeeze(), T)
+        #         found_char = flip_coin(soft_out, self.use_gpu)
+        #         predicted.append(found_char)
+        #
+        # else:
+        #     while end_found is False:
+        #         inp = add_cuda_to_variable(predicted, self.use_gpu).unsqueeze(-1).transpose(0, 2)
+        #         output = self.forward(inp, self.hidden)[-1]
+        #         soft_out = custom_softmax(output.data.squeeze(), T)
+        #         found_char = flip_coin(soft_out, self.use_gpu)
+        #         predicted.append(found_char)
+        #         if found_char == fasta_sampler.vocabulary[fasta_sampler.end]:
+        #             end_found = True
+
+        # strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
         return ''.join(strlist)
         # return (''.join(strlist).replace(fasta_sampler.pad_char, '')).replace(fasta_sampler.start, '').replace(fasta_sampler.end, '')

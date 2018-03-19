@@ -42,3 +42,10 @@ train_loss, val_loss = rnn.train(fs, batch_size,
                                  slice_len=None,
                                  slice_incr_perc=None
                                  )
+
+
+
+ex = fs.generate_N_sample_per_year(1, 2012, full=False, to_num=False)[0]
+dream = rnn.daydream(ex, 5, fs, predict_len=566)
+print(dream)
+print(len(dream))
