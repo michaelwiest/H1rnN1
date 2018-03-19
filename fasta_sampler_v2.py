@@ -15,11 +15,15 @@ Class for handling fasta files. It essentially generates random combinations
 of AA sequences from the specified years. Currently can only generate
 AA sequences from a winter > summer > winter combination.
 '''
+'''
+Class for handling fasta files. It essentially generates random combinations
+of AA sequences from the specified years. Currently can only generate
+AA sequences from a winter > summer > winter combination.
+'''
 class FastaSamplerV2(object):
-    def __init__(self, north_fasta, south_fasta, use_order = True, k = 10,
-                 start='$', end='%', delim0='&', delim1='@', pad_char='_',specified_len=566):
-        self.k = k
-        self.use_order = use_order
+    def __init__(self, north_fasta, south_fasta,
+                 start='$', end='%', delim0='&', delim1='@', pad_char='_',
+                 specified_len=566, use_order = True,k = 10):
         self.start = start
         self.end = end
         self.delim0 = delim0
@@ -29,6 +33,8 @@ class FastaSamplerV2(object):
         self.train_years = None
         self.validation_years = None
         self.specified_len = specified_len
+        self.use_order = use_order
+        self.k = k
         self.handle_files(north_fasta, south_fasta)
 
     def handle_files(self, north_fasta, south_fasta):
@@ -172,11 +178,11 @@ class FastaSamplerV2(object):
             # get the first k elements of lowest difference to randomly select between
             k = self.k
             try:
-                index_dict[key] = np.argpartition(dist_mat[str(key)+str(keys[iterate+1])],k,axis=2)[:,:k]
+                index_dict[key] = np.argpartition(dist_mat[str(key)+str(keys[iterate+1])],k,axis=1)[:,:k]
             except:
                 index_dict[key] = np.argpartition(dist_mat[str(key)+str(keys[iterate+1])],1,axis=1)[:,:2]
             iterate = iterate + 1
-
+            # index_dict[key] = np.argmax(dist_mat[str(key)+str(keys[iterate+1])],axis =-1)
 
         self.index_dict = index_dict
 
@@ -248,7 +254,7 @@ class FastaSamplerV2(object):
         return ind, winter_seq
 
 
-    def __get_summer_sample(self, year, possibles, index):
+    def __get_summer_sample(self, N, year, possibles, index):
         summer_seq = []
         ind=0
         while len(summer_seq) < N:
@@ -302,7 +308,7 @@ class FastaSamplerV2(object):
                 except:
                     self.get_data()
                     possible_summers = self.data_mat[key]
-                ind, exs = self.__get_winter_sample(N, current_year,
+                ind, exs = self.__get_summer_sample(N, current_year,
                                                possible_summers,index)
 
             if i>=1 and self.use_order:
