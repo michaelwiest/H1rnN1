@@ -99,15 +99,6 @@ class FastaSamplerV2(object):
                 data[year] = []
             data[year].append(template)
 
-
-            # print(self.df.shape)
-            # row = pd.DataFrame(np.array([f.id, area, year, month, day, location] + list(seq))).T
-            # print(row.shape)
-            # self.df = self.df.append(row)
-            # print(pd.DataFrame.from_dict(template))
-            # print(self.df.shape)
-
-
         print('Missing data: {}'.format(num_missing))
         print('Bad length data: {}'.format(num_too_long))
         # self.__generate_vocabulary(''.join(list(seqs)))
@@ -141,8 +132,6 @@ class FastaSamplerV2(object):
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
             output += self.generate_N_sample_per_year(num_samples, year,
                                                       to_num=to_num)
-            # print(len(output))
-
 
         output = np.array(output)
         min2 = output[:, 0, :]
@@ -232,7 +221,6 @@ class FastaSamplerV2(object):
                                                s_upper, s_lower)
             all_seqs.append(exs)
         all_seqs = np.array(all_seqs).T
-        # print(all_seqs.shape)
         all_seqs = all_seqs.tolist()
 
         if to_num:
@@ -333,17 +321,22 @@ class FastaSamplerV2(object):
                                             'day', 'location',
                                             'seq', 'seq_list'
                                             ])
-            for year, vals in self.north.iteritems():
+            for year, vals in self.north.items():
                 self.df = self.df.append(pd.DataFrame(self.north[year]))
-            for year, vals in self.south.iteritems():
+            for year, vals in self.south.items():
                 self.df = self.df.append(pd.DataFrame(self.south[year]))
+            to_add = pd.DataFrame(self.df.seq_list.values.tolist(),
+                                  index=self.df.index)
 
-            self.df[range(self.specified_len)] = pd.DataFrame(self.df.seq_list.values.tolist(),
-                                                              index=self.df.index)
+            for col in to_add.columns:
+                to_add[col] = to_add[col].astype('category')
+
+            self.df[list(range(self.specified_len))] = to_add
+
             self.df.index = self.df.id
-            # self.df = self.df.drop()
+
         if just_vals:
-            return self.df[range(self.specified_len)]
+            return self.df[list(range(self.specified_len))]
         else:
             return self.df
 
