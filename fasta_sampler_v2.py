@@ -33,11 +33,13 @@ class FastaSamplerV2(object):
         self.__generate_vocabulary(vocab_temp)
 
     def __generate_vocabulary(self, vocabulary):
+        t = len(vocabulary)
         vocabulary += self.start
         vocabulary += self.end
         # vocabulary += self.delim0
         # vocabulary += self.delim1
         self.vocabulary = get_idx(vocabulary)
+        self.num_special_chars = len(self.vocabulary) - t
         # This is for the zero padding character.
         # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
