@@ -205,8 +205,6 @@ class FastaSampler(object):
 
     def __get_winter_sample(self, N, year, possibles, upper, lower, index):
         winter_seq = []
-        if N==0:
-            ind=0
         while len(winter_seq) < N:
             if index=='NA':
                 ind = np.random.randint(len(possibles))
@@ -254,11 +252,6 @@ class FastaSampler(object):
         s_lower = 5
 
         to_return = []
-        if self.use_order:
-            if pattern[0].lower()=='w':
-                key = [str(year)+'n'+str(year)+'s',str(year)+'s'+str(year+1)+'n']
-            else:
-                key1 = [str(year)+'s'+str(year+1)+'n',str(year+1)+'n'+str(year+1)+'s']
         all_seqs = []
         current_year = year
         index = 'NA'

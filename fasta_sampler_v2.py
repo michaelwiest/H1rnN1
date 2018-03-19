@@ -6,6 +6,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from helper import get_idx
 from collections import Counter
+import scipy
+from helper import *
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -13,8 +15,9 @@ of AA sequences from the specified years. Currently can only generate
 AA sequences from a winter > summer > winter combination.
 '''
 class FastaSamplerV2(object):
-    def __init__(self, north_fasta, south_fasta,
+    def __init__(self, north_fasta, south_fasta, use_order = True,
                  start='$', end='%', delim0='&', delim1='@', pad_char='_'):
+        self.use_order = use_order
         self.start = start
         self.end = end
         self.delim0 = delim0
@@ -95,6 +98,74 @@ class FastaSamplerV2(object):
         # self.__generate_vocabulary(''.join(list(seqs)))
         return data, ''.join(list(seqs))
 
+    def get_data(self):
+        data_mat = {}
+        num_mat = {}
+        w_upper = 5
+        w_lower = 10
+        s_upper = 10
+        s_lower = 5
+        for year in range(2010,2018):
+            data_mat[str(year)+'n']=[]
+            num_mat[str(year)+'n'] = []
+            if year > 2010:
+                winter = self.north[year] + self.north[year-1]
+            else:
+                winter = self.north[year]
+            for ind in range(len(winter)):
+                sample = winter[ind]
+                if (sample['year'] == year and sample['month'] <= w_upper) or \
+                    (sample['year'] == year - 1 and sample['month'] >= w_lower):
+                    data_mat[str(year)+'n'].append(sample['seq'])
+                    if len(num_mat[str(year)+'n'])<1:
+                        num_mat[str(year)+'n'] = [self.vocabulary[c] for c in sample['seq']]
+                    else:
+                        num_mat[str(year)+'n'] = np.vstack((num_mat[str(year)+'n'],[self.vocabulary[c] for c in sample['seq']]))
+            if year==2017:
+                s_upper = 12
+                s_lower = 0
+            else:
+                s_upper = 10
+                s_lower = 5
+            data_mat[str(year)+'s']=[]
+            num_mat[str(year)+'s'] = []
+            summer = self.south[year]
+            for ind in range(len(self.south[year])):
+                sample = summer[ind]
+                #pdb.set_trace()
+                if (sample['year'] == year and sample['month'] <= s_upper and \
+                    sample['month'] >= s_lower):
+                    data_mat[str(year)+'s'].append(sample['seq'])
+                    if len(num_mat[str(year)+'s'])<1:
+                        num_mat[str(year)+'s'] = [self.vocabulary[c] for c in sample['seq']]
+                    else:
+                        num_mat[str(year)+'s'] = np.vstack((num_mat[str(year)+'s'],[self.vocabulary[c] for c in sample['seq']]))
+        self.data_mat = data_mat
+        self.num_mat = num_mat
+
+    def compute_distances(self):
+        data_mat = self.data_mat
+        num_mat = self.num_mat
+        keys = [key for key in num_mat]
+        keys = sorted(keys)
+        dist_mat = {}
+        iterate = 0
+        index_dict = {}
+        for key in keys[:-1]:
+            # ith entry is first year, jth entry is second year
+            # to find the second year value that most matches the first year value, argmin(data[i,:])
+            dist_mat[str(key)+str(keys[iterate+1])] = scipy.spatial.distance.cdist(num_mat[key], num_mat[keys[iterate+1]], 'hamming')
+        # with open('dist_mat.pkl', 'w') as f:  # Python 3: open(..., 'wb')
+        #     pickle.dump(dist_mat, f)
+            # first year is 317 samples, second year is 242 num_samples
+            # for each of the 317 samples,find the argmin over the next 242 samples
+
+            index_dict[key] = np.argmin(dist_mat[str(key)+str(keys[iterate+1])],axis=-1)
+            iterate = iterate + 1
+
+
+        self.index_dict = index_dict
+
     def set_validation_years(self, validation):
         all_years = self.north.keys()
         self.train_years = list(set(all_years) - set(validation))
@@ -107,7 +178,10 @@ class FastaSamplerV2(object):
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
 
-    def generate_N_random_samples_and_targets(self, N, group='train'):
+    def generate_N_random_samples_and_targets(self, N, group='train',
+                                              slice_len=None,
+                                              to_num=True,
+                                              shift_index=True):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
         output = []
@@ -118,37 +192,72 @@ class FastaSamplerV2(object):
                 year = self.train_years[np.random.randint(len(self.train_years))]
             elif group.lower() == 'validation':
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
-            output += self.generate_N_sample_per_year(num_samples, year)
+            output += self.generate_N_sample_per_year(num_samples, year,
+                                                      to_num=to_num)
+            # print(len(output))
 
 
         output = np.array(output)
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
-        min0 = output[:, 2, 1:]
-        targets = output[:, 2, 1:]
-        return min2, min1, min0, targets
+        min0 = output[:, 2, :]
+        target = output[:, 2, :]
+
+        if slice_len is not None:
+            if to_num:
+                min0_slice = np.zeros((min0.shape[0], slice_len))
+                targets_slice = np.zeros((min0.shape[0], slice_len))
+            else:
+                min0_slice = np.empty((min0.shape[0], slice_len), dtype=str)
+                targets_slice = np.empty((min0.shape[0], slice_len), dtype=str)
+            indices = np.random.randint(max(1, min0.shape[1] - slice_len), size=N)
+            for i, index in enumerate(indices):
+                if shift_index:
+                    min0_slice[i, :] = min0[i, index: index + slice_len]
+                    targets_slice[i, :] = min0[i, index + 1: index + slice_len + 1]
+                else:
+                    min0_slice[i, :] = min0[i, index: index + slice_len]
+                    targets_slice[i, :] = min0_slice[i, :]
+
+            target = targets_slice
+            min0 = min0_slice
+        return [min2, min1], min0, target
 
 
-    def __get_winter_sample(self, N, year, possibles, upper, lower):
+    def __get_winter_sample(self, N, year, possibles, index):
+        ind=0
         winter_seq = []
         while len(winter_seq) < N:
-            ind = np.random.randint(len(possibles))
-            sample = possibles[ind]
-            if (sample['year'] == year and sample['month'] <= upper) or \
-                    (sample['year'] == year - 1 and sample['month'] >= lower):
-                winter_seq.append(self.start + sample['seq'] + self.end)
-        return winter_seq
+            if index=='NA':
+                ind = np.random.randint(len(possibles))
+            else:
+                ind = index
+            try:
+                sample = possibles[ind]
+            except:
+                pdb.set_trace()
+            #if (sample['year'] == year and sample['month'] <= upper) or \
+                    #(sample['year'] == year - 1 and sample['month'] >= lower):
+            winter_seq.append(self.start + sample + self.end)
+        return ind, winter_seq
 
 
-    def __get_summer_sample(self, year, possibles, upper, lower):
+    def __get_summer_sample(self, year, possibles, index):
         summer_seq = []
+        ind=0
         while len(summer_seq) < N:
-            ind = np.random.randint(len(possibles))
-            sample = possibles[ind]
-            if (sample['year'] == year and sample['month'] <= s_upper and \
-                    sample['month'] >= s_lower):
-                summer_seq.append(self.start + sample['seq'] + self.end)
-        return summer_seq
+            if index=='NA':
+                ind = np.random.randint(len(possibles))
+            else:
+                ind = index
+            try:
+                sample = possibles[ind]
+            except:
+                pdb.set_trace()
+            #if (sample['year'] == year and sample['month'] <= s_upper and \
+                    #sample['month'] >= s_lower):
+            summer_seq.append(self.start + sample + self.end)
+        return ind, summer_seq
 
     # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
     # supply 2013 as the year. This returns an Nx3 array. Where the pattern
@@ -176,19 +285,39 @@ class FastaSamplerV2(object):
         to_return = []
         all_seqs = []
         current_year = year
+        index = 'NA'
         for i, p in enumerate(pattern):
             if not i == 0 and not (p.lower() == 's' and pattern[i-1].lower() == 'w'):
                 current_year += 1
             if p.lower() == 'w':
-                possible_winters = self.north[current_year] + self.north[current_year - 1]
-                exs = self.__get_winter_sample(N, current_year,
-                                               possible_winters,
-                                               w_upper, w_lower)
+                key = str(current_year) + 'n'
+                try:
+                    possible_winters = self.data_mat[key]
+                except:
+                    self.get_data()
+                    possible_winters = self.data_mat[key]
+                #possible_winters = self.north[current_year] + self.north[current_year - 1]
+                ind, exs = self.__get_winter_sample(N, current_year,
+                                               possible_winters,index)
             elif p.lower() == 's':
-                possible_summers = self.south[current_year]
-                exs = self.__get_winter_sample(N, current_year,
-                                               possible_summers,
-                                               s_upper, s_lower)
+                key = str(current_year) + 's'
+                try:
+                    possible_summers = self.data_mat[key]
+                except:
+                    self.get_data()
+                    possible_summers = self.data_mat[key]
+                ind, exs = self.__get_winter_sample(N, current_year,
+                                               possible_summers,index)
+
+            if i>=1 and self.use_order:
+                try:
+                    index = self.index_dict[key][ind]
+                except:
+                    self.compute_distances()
+                    print('computed distances')
+                    index = self.index_dict[key][ind]
+            else:
+                index = 'NA'
             all_seqs.append(exs)
         all_seqs = np.array(all_seqs).T
         all_seqs = all_seqs.tolist()
