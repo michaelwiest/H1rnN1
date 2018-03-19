@@ -35,5 +35,18 @@ def flip_coin(probabilities, is_gpu):
     dist = abs(sp - rand_int)
     return np.argmin(dist)
 
+def flip_coin_batch(probabilities, is_gpu):
+    stacked_probs = np.cumsum(probabilities)
+    N = probabilities.size(0)
+    v_size = probabilities.size(1)
+    rand_int = np.array([np.random.random(N)]).T
+    rand_int = rand_int.repeat(v_size, axis=1)
+    if is_gpu:
+        sp = stacked_probs[0].cpu().numpy()
+    else:
+        sp = stacked_probs.numpy()
+    dist = abs(sp - rand_int)
+    return np.array([np.argmin(dist, axis=1)]).T
+
 def custom_softmax(output, T):
     return torch.exp(torch.div(output, T)) / torch.sum(torch.exp(torch.div(output, T)))
