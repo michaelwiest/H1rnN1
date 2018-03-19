@@ -263,9 +263,13 @@ class RNN(nn.Module):
 
 
     def batch_dream(self, N, primer, year, T, fasta_sampler, predict_len):
+        self.batch_size = N
+        samples = np.array(generate_N_sample_per_year(N, year))
+        prev_observations = [output[:, 0, :], output[:, 1, :]]
         vocab_size = len(fasta_sampler.vocabulary)
+        output = np.chararray((N, fs.specified_len + fs.))
         # Have we detected an end character?
-        self.batch_size = 1
+
 
         self.__init_hidden()
         prev_observations = [add_cuda_to_variable(o, self.use_gpu) for o in prev_observations]
