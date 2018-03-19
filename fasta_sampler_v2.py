@@ -28,7 +28,6 @@ class FastaSamplerV2(object):
         self.specified_len = specified_len
         self.handle_files(north_fasta, south_fasta)
 
-
     def handle_files(self, north_fasta, south_fasta):
         self.north, v1 = self.__parse_fasta_to_list(north_fasta, 'north')
         self.south, v2 = self.__parse_fasta_to_list(south_fasta, 'south')
@@ -42,11 +41,15 @@ class FastaSamplerV2(object):
         # vocabulary += self.delim0
         # vocabulary += self.delim1
         self.vocabulary = get_idx(vocabulary)
-        self.num_special_chars = len(self.vocabulary.keys()) - t
+        self.num_special_chars = len(self.vocabulary) - t
+
         # This is for the zero padding character.
         # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
+        
+        
+        
     def __parse_fasta_to_list(self, some_fasta, area):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
         data = {}
