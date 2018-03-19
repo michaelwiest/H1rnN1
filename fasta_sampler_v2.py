@@ -8,6 +8,7 @@ from helper import get_idx
 from collections import Counter
 import scipy
 from helper import *
+import random
 
 '''
 Class for handling fasta files. It essentially generates random combinations
@@ -15,8 +16,9 @@ of AA sequences from the specified years. Currently can only generate
 AA sequences from a winter > summer > winter combination.
 '''
 class FastaSamplerV2(object):
-    def __init__(self, north_fasta, south_fasta, use_order = True,
+    def __init__(self, north_fasta, south_fasta, use_order = True, k = 10,
                  start='$', end='%', delim0='&', delim1='@', pad_char='_'):
+        self.k = k
         self.use_order = use_order
         self.start = start
         self.end = end
@@ -155,12 +157,11 @@ class FastaSamplerV2(object):
             # ith entry is first year, jth entry is second year
             # to find the second year value that most matches the first year value, argmin(data[i,:])
             dist_mat[str(key)+str(keys[iterate+1])] = scipy.spatial.distance.cdist(num_mat[key], num_mat[keys[iterate+1]], 'hamming')
-        # with open('dist_mat.pkl', 'w') as f:  # Python 3: open(..., 'wb')
-        #     pickle.dump(dist_mat, f)
             # first year is 317 samples, second year is 242 num_samples
             # for each of the 317 samples,find the argmin over the next 242 samples
 
-            index_dict[key] = np.argmin(dist_mat[str(key)+str(keys[iterate+1])],axis=-1)
+            # get the first k elements of lowest difference to randomly select between
+            index_dict[key] = np.argpartition(dist_mat[str(key)+str(keys[iterate+1])],self.k,axis=-1)[:self.k]
             iterate = iterate + 1
 
 
@@ -232,12 +233,7 @@ class FastaSamplerV2(object):
                 ind = np.random.randint(len(possibles))
             else:
                 ind = index
-            try:
-                sample = possibles[ind]
-            except:
-                pdb.set_trace()
-            #if (sample['year'] == year and sample['month'] <= upper) or \
-                    #(sample['year'] == year - 1 and sample['month'] >= lower):
+            sample = possibles[ind]
             winter_seq.append(self.start + sample + self.end)
         return ind, winter_seq
 
@@ -250,12 +246,7 @@ class FastaSamplerV2(object):
                 ind = np.random.randint(len(possibles))
             else:
                 ind = index
-            try:
-                sample = possibles[ind]
-            except:
-                pdb.set_trace()
-            #if (sample['year'] == year and sample['month'] <= s_upper and \
-                    #sample['month'] >= s_lower):
+            sample = possibles[ind]
             summer_seq.append(self.start + sample + self.end)
         return ind, summer_seq
 
@@ -277,11 +268,6 @@ class FastaSamplerV2(object):
             raise ValueError('Please only supply patterns of length 3')
         # Months bounding the flu season. w = winter. and s = summer for
         # southern hemisphere.
-        w_upper = 5
-        w_lower = 10
-        s_upper = 10
-        s_lower = 5
-
         to_return = []
         all_seqs = []
         current_year = year
@@ -311,11 +297,11 @@ class FastaSamplerV2(object):
 
             if i>=1 and self.use_order:
                 try:
-                    index = self.index_dict[key][ind]
+                    index = random.sample(self.index_dict[key][ind])
                 except:
                     self.compute_distances()
                     print('computed distances')
-                    index = self.index_dict[key][ind]
+                    index = random.sample(self.index_dict[key][ind])
             else:
                 index = 'NA'
             all_seqs.append(exs)
