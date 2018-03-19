@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import random
 import pdb
 import numpy as np
-from helper import *
+from helper_v2 import *
 import csv
 import IPython
 
@@ -36,12 +36,13 @@ class RNN(nn.Module):
         # Assuming kernel size is a list of lists. We make Sequential
         # convolutional elements for things in the same list. Later lists
         # are parallel convolutional layers.
+
         for i in xrange(len(kernel_size)):
             inp_size = self.input_size
             mods = []
-            row = kernel_size[i]
-            for j in xrange(len(kernel_size[i])):
-                kernel = row[j]
+            k_row = kernel_size[i]
+            for j in xrange(len(k_row)):
+                kernel = k_row[j]
                 nf = self.num_filters[i][j]
                 pad = kernel
                 # We want a conv, batchnorm and relu after each layer.
@@ -49,40 +50,51 @@ class RNN(nn.Module):
                 mods.append(nn.BatchNorm1d(nf))
                 mods.append(nn.ReLU())
                 inp_size = nf
-            # This is the total number of inputs to the LSTM layer.
+
             self.conv_outputs += nf
             self.convs.append(nn.Sequential(*mods))
 
-        self.lstm_in_size = self.conv_outputs + self.input_size # +1 for raw sequence
+        # This is the total number of inputs to the LSTM layer.
+        self.lstm_in_size = 2 * (self.conv_outputs + self.input_size) # 2x prev years
         self.convs = nn.ModuleList(self.convs)
         self.lstm = nn.LSTM(self.lstm_in_size, lstm_hidden, n_layers, dropout=0.01)
         self.out = nn.Linear(lstm_hidden, output_size)
         self.hidden = self.__init_hidden()
 
-
     def forward(self, inputs, hidden):
-        batch_size = inputs.size(1)
+
+
+        # IPython.embed()
+
+        # inputs = [min2, min1] years
+        batch_size = inputs.shape[2]
         # The number of characters in the input string
-        num_elements = inputs.size(2)
+        num_elements = inputs.shape[3]
 
-        # Run through Convolutional layers. Chomp elements so our output
-        # size matches our labels. We basically want to ignore all the
-        # elements that are convolving over the padding to the right of the
-        # chars.
-        outs = [conv(inputs)[:, :, :num_elements] for conv in self.convs]
-        outs.append(inputs)
-        c = torch.cat([out for out in outs], 1)
+        # Run through Convolutional layers. Chomp elements at the end because they correspons
+        # to convolution with right-side padding, which have "no valuable" information explicitely.
+        # This way we get matching sizes of conv sequences to input sequences and can concatenate.
 
+        c = inputs[0].permute(1,0,2)
+        if self.convs:
+            inputs2 = inputs[:,0,:,:].permute(1,0,2)
+            inputs1 = inputs[:,1,:,:].permute(1,0,2)
+
+            outs2 = [conv(inputs2)[:, :, :num_elements] for conv in self.convs] #2 prev years
+            outs1 = [conv(inputs1)[:, :, :num_elements] for conv in self.convs] #1 prev years
+            c2 = torch.cat([out for out in outs2], 1)
+            c1 = torch.cat([out for out in outs1], 1)
+            c = torch.cat([c, c2, c1, ],1) # Append raw sequences
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
-        p = c.transpose(1, 2).transpose(0, 1)
+        p = c.permute(2, 0, 1)
 
         output, self.hidden = self.lstm(p, hidden)
         conv_seq_len = output.size(0)
         output = self.out(F.relu(output))
         output = output.view(conv_seq_len, -1, self.output_size)
-        return F.log_softmax(output)
-
+        return output
+        # return F.log_softmax(output)
 
     def __init_hidden(self):
             # The axes semantics are (num_layers, minibatch_size, hidden_dim)
@@ -127,12 +139,11 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                train, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, slice_len=slice_len)
+
+                train, targets, _ = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, slice_len=slice_len)
                 train = add_cuda_to_variable(train, self.use_gpu)
                 targets = add_cuda_to_variable(targets, self.use_gpu)
-
-
-                IPython.embed()
+                # Train = [min2, min1] 2 years ago, targets = current year
 
                 self.zero_grad()
                 self.__init_hidden()
@@ -147,7 +158,9 @@ class RNN(nn.Module):
                 # predicting padding.
                 # outputs = outputs[1:-self.kernel_size, :, :]
                 # reshape the targets to match.
-                targets = targets.transpose(0, 2).transpose(1, 2).long()
+
+                # IPython.embed()
+                targets = targets.permute(1,0).unsqueeze(2).long()
 
                 for bat in range(batch_size):
                     loss += loss_function(outputs[:, bat, :], targets[:, bat, :].squeeze(1))
@@ -156,16 +169,19 @@ class RNN(nn.Module):
 
                 if iterate % 1000 == 0:
                     print('Loss ' + str(loss.data[0] / self.batch_size))
-                    val, val_targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
+                    val, val_targets, _ = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
                                                                                           group='validation',
                                                                                           slice_len=slice_len)
                     val = add_cuda_to_variable(val, self.use_gpu)
                     val_targets = add_cuda_to_variable(val_targets, self.use_gpu)
 
+                    # IPython.embed()
+
                     self.__init_hidden()
                     outputs_val = self.forward(val, self.hidden)
                     outputs_val = outputs_val
-                    val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
+                    val_targets = val_targets.permute(1,0).unsqueeze(2).long()
+                    # val_targets = val_targets.transpose(0, 2).transpose(1, 2).long()
                     val_loss = 0
                     for bat in range(self.batch_size):
                         val_loss += loss_function(outputs_val[:, 1, :], val_targets[:, 1, :].squeeze(1))
