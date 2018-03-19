@@ -262,13 +262,14 @@ class RNN(nn.Module):
         return ''.join(strlist)
 
 
-    def batch_dream(self, N, primer, year, T, fasta_sampler, predict_len):
+    def batch_dream(self, N, primer, year, T, fs, predict_len):
         self.batch_size = N
         samples = np.array(generate_N_sample_per_year(N, year))
         prev_observations = [output[:, 0, :], output[:, 1, :]]
-        vocab_size = len(fasta_sampler.vocabulary)
-        output = np.chararray((N, fs.specified_len + fs.))
-        # Have we detected an end character?
+
+        # Predictions to be returned
+        # output = np.chararray((N, fs.specified_len + fs.num_special_chars))
+        predicted = np.array([[fs.vocabulary[c] for c in list(primer)]]).repeat(N, axis=0)
 
 
         self.__init_hidden()
@@ -281,14 +282,16 @@ class RNN(nn.Module):
         # _ = self.forward(train, inp)
 
         # self.seq_len = 1
-        predicted = list(primer)
+        # predicted = list(primer)
         if predict_len is not None:
             for p in range(predict_len):
                 inp = add_cuda_to_variable(predicted, self.use_gpu)
                 output = self.forward(train, inp, reset_hidden=False)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
-                predicted.append(found_char)
+                print(found_char)
+                # Add our predicted characters to the current predictions.
+                predicted = np.concatenate((predicted, found_char), axis=1)
 
         strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in predicted]
         return ''.join(strlist)
