@@ -268,7 +268,8 @@ class RNN(nn.Module):
     '''
     def batch_dream(self, N, primer, year, T, fasta_sampler,
                     predict_len, reset=True,
-                    last_char_only=False):
+                    window_size=100,
+                    split = False):
         self.batch_size = N
         samples = np.array(fasta_sampler.generate_N_sample_per_year(N, year))
         prev_observations = [samples[:, 0, :], samples[:, 1, :]]
@@ -285,11 +286,8 @@ class RNN(nn.Module):
         self.seq_len = len(primer)
         if predict_len is not None:
             for p in range(predict_len):
-                if last_char_only:
-                    p = np.array([predicted[:, -1]]).T
-                    inp = add_cuda_to_variable(p, self.use_gpu)
-                else:
-                    inp = add_cuda_to_variable(predicted, self.use_gpu)
+                inp = add_cuda_to_variable(predicted[-window_size:],
+                                           self.use_gpu)
                 # Get a prediction from the model.
                 output = self.forward(train,
                                       inp,
@@ -299,5 +297,7 @@ class RNN(nn.Module):
                 # Add our predicted characters to the current predictions.
                 predicted = np.concatenate((predicted, found_char), axis=1)
         trans = np.vectorize(fasta_sampler.inverse_vocabulary.get)(predicted).tolist()
-
-        return [''.join(sample) for sample in trans]
+        if not split:
+            return np.array([''.join(sample) for sample in trans])
+        else:
+            return np.array(trans)
