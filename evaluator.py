@@ -51,11 +51,18 @@ class Evaluator(object):
         actuals = np.array(actuals.tolist())
         return self.get_dist_matrix(predictions, actuals), predictions, actuals
 
-    def gen_hamming_over_seq(self, seqs_a, seqs_b):
+    def gen_hamming_over_seq(self, num_samples, primer, year, temp, plot=False):
+        predictions = self.model.batch_dream(num_samples, primer, year, temp,
+                                     self.fs, predict_len, split=True)
+        targets = generate_N_sample_per_year(num_samples, year)
         hamming_distance = []
         for i in xrange(len(seqs_a)):
             seq_a = seqs_a[0:i]
             seq_b = seqs_b[0:i]
             current_dist = scipy.spatial.distance.hamming(seqs_a, seqs_b)
             hamming_distance.append(current_dist)
+        if plot:
+            ind = np.arange(len(seqs_a))
+            width = 0.35
+            
         return hamming_distance
