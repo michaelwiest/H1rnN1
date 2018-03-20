@@ -1,11 +1,15 @@
 from fasta_sampler_v2 import *
 from RNN_v2 import *
 import scipy
+<<<<<<< HEAD
 '''
 Usage is:
 E = Evaluator(fs, model)
 dist, pred, actual = E.gen_and_compare_year(10, '$MK', 2012, 10)
 '''
+=======
+
+>>>>>>> 922682fee0770ca7ca29849da1798f09b06f40e1
 
 class Evaluator(object):
     def __init__(self, fasta_sampler, model):
@@ -13,11 +17,14 @@ class Evaluator(object):
         self.model = model
 
 
+<<<<<<< HEAD
     '''
     Returns a numpy array of the distance between sequences a and b.
     You should supply a 2d array of characters.
     Where each row is a sequence ie,['M', 'K', ...]
     '''
+=======
+>>>>>>> 922682fee0770ca7ca29849da1798f09b06f40e1
     def get_dist_matrix(self, seqs_a, seqs_b):
         if len(seqs_a.shape) == 1:
             seqs_a = np.array([seqs_a]).T
@@ -27,6 +34,7 @@ class Evaluator(object):
         seqs_b = np.vectorize(self.fs.vocabulary.get)(seqs_b)
         return scipy.spatial.distance.cdist(seqs_a, seqs_b, metric='hamming')
 
+<<<<<<< HEAD
     '''
     Dreams up a batch of guesses from the model. And compares them to the
     Following year's data (the year for which it would be predicting).
@@ -48,3 +56,13 @@ class Evaluator(object):
         actuals = df[df['year'] == year + 1].sample(num_samples)['seq_list'].values
         actuals = np.array(actuals.tolist())
         return self.get_dist_matrix(predictions, actuals), predictions, actuals
+=======
+    def gen_and_compare_year(self, num_samples, primer, year, temp,
+                             predict_len):
+        predictions = self.model.batch_dream(num_samples, primer, year, temp,
+                                             self.fs, predict_len)
+        df = self.fs.get_dataframe()
+        actuals = df[df['year'] == year + 1].sample(num_samples)['seq_list'].values
+        actuals = np.array(actuals.tolist())
+        return self.get_dist_matrix(predictions, actuals)
+>>>>>>> 922682fee0770ca7ca29849da1798f09b06f40e1
