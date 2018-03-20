@@ -32,6 +32,7 @@ class FastaSamplerV2(object):
         self.north, v1 = self.__parse_fasta_to_list(north_fasta, 'north')
         self.south, v2 = self.__parse_fasta_to_list(south_fasta, 'south')
         vocab_temp = ''.join(list(set(list(v1) + list(v2))))
+        self.all_aas = vocab_temp
         self.__generate_vocabulary(vocab_temp)
 
     def __generate_vocabulary(self, vocabulary):
@@ -47,9 +48,9 @@ class FastaSamplerV2(object):
         # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
-        
-        
-        
+
+
+
     def __parse_fasta_to_list(self, some_fasta, area):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
         data = {}
@@ -105,6 +106,7 @@ class FastaSamplerV2(object):
         print('Missing data: {}'.format(num_missing))
         print('Bad length data: {}'.format(num_too_long))
         # self.__generate_vocabulary(''.join(list(seqs)))
+
         return data, ''.join(list(seqs))
 
     def set_validation_years(self, validation):
@@ -281,7 +283,8 @@ class FastaSamplerV2(object):
         char_to_int = dict((c, i) for i, c in enumerate(alphabet))
         integer_encoded = [[char_to_int[char] for char in d] for d in all_seq]
 
-        AAs = list(set(''.join([d['seq'] for d in data])))
+        # AAs = list(set(''.join([d['seq'] for d in data])))
+        AAs = self.all_aas
         to_return = np.zeros((len(data[0]['seq']), len(AAs)))
 
         for i in range(len(data)):
