@@ -292,7 +292,7 @@ class RNN(nn.Module):
                 output = self.forward(train,
                                       inp,
                                       reset_hidden=reset)[-1]
-                soft_out = custom_softmax(output.data.squeeze(), T)
+                soft_out = custom_softmax_batch(output.data.squeeze(), T)
                 found_char = flip_coin_batch(soft_out, self.use_gpu)
                 # Add our predicted characters to the current predictions.
                 predicted = np.concatenate((predicted, found_char), axis=1)

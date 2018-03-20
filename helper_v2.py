@@ -50,3 +50,9 @@ def flip_coin_batch(probabilities, is_gpu):
 
 def custom_softmax(output, T):
     return torch.exp(torch.div(output, T)) / torch.sum(torch.exp(torch.div(output, T)))
+
+
+def custom_softmax_batch(output, T):
+    denom = torch.sum(torch.exp(torch.div(output, T)), dim=1).unsqueeze(-1)
+    denom = denom.expand(output.size(0), output.size(1))
+    return torch.exp(torch.div(output, T)) / denom
