@@ -3,6 +3,9 @@ import random
 from torch.autograd import Variable
 import torch
 import pdb
+import operator
+from itertools import izip, imap
+from scipy import spatial
 
 # function maps each word to an index
 def get_idx(char_data):
@@ -53,3 +56,13 @@ def weights_to_2d(weights):
 
 def custom_softmax(output, T):
     return torch.exp(torch.div(output, T)) / torch.sum(torch.exp(torch.div(output, T)))
+
+
+def hamming(str1, str2):
+    assert len(str1) == len(str2)
+    ne = operator.ne
+    return sum(imap(ne, str1, str2))
+
+def get_next_sorted_sample(A, pt):
+    pdb.set_trace()
+    return spatial.KDTree(A).query(pt)[1]
