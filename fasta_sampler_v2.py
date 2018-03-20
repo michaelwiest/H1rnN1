@@ -7,7 +7,7 @@ from sklearn.preprocessing import OneHotEncoder
 from helper_v2 import get_idx
 from collections import Counter
 import scipy
-from helper import *
+from helper_v2 import *
 import random
 
 '''
@@ -51,7 +51,7 @@ class FastaSamplerV2(object):
         # vocabulary += self.delim1
         self.vocabulary = get_idx(vocabulary)
         self.num_special_chars = len(self.vocabulary) - t
-
+        pdb.set_trace()
         # This is for the zero padding character.
         # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
@@ -242,7 +242,7 @@ class FastaSamplerV2(object):
 
 
     def __get_winter_sample(self, N, year, possibles, index):
-        ind=0
+        ind=1
         winter_seq = []
         while len(winter_seq) < N:
             if index=='NA':

@@ -8,6 +8,8 @@ import pdb
 def get_idx(char_data):
     word_to_ix = {}
     count = 0
+    char_data = list(char_data)
+    char_data.sort()
     for word in char_data:
         if word not in word_to_ix:
             word_to_ix[word] = count
@@ -36,7 +38,7 @@ def flip_coin(probabilities, is_gpu):
     return np.argmin(dist)
 
 def flip_coin_batch(probabilities, is_gpu):
-    stacked_probs = np.cumsum(probabilities)
+    stacked_probs = np.cumsum(probabilities, axis = -1)
     N = probabilities.size(0)
     v_size = probabilities.size(1)
     rand_int = np.array([np.random.random(N)]).T
