@@ -11,21 +11,24 @@ import scipy
 from helper import *
 
 class Visualize():
-    def __init__(self, predicted_sequences, year, fs, hemisphere='North', ):
-        self.predicted = predicted_sequences
+    def __init__(self, year, fs, rnn):
         self.year = year
         self.vocab = fs.vocabulary
-        self.hemisphere = hemisphere.lower()[0]
+        self.fs = fs
+        self.rnn = rnn
 
     def distance_heatmap(self):
-        num_mat = fs.num_mat
+        self.fs.get_data()
+        predicted = self.rnn.batch_dream(len(self.fs.data_mat[str(self.year+1)+'n']), '$M', self.year, 5, self.fs, predict_len=566)
+        num_mat = self.fs.num_mat
 
         num_pred = [[self.vocab[c] for c in sequence] for sequence in self.predicted]
         dist_mat = scipy.spatial.distance.cdist(num_mat[str(self.year)+self.hemisphere], num_pred, 'hamming')
         plt.imshow(dist_mat, cmap='PiYG', interpolation='nearest')
         plt.colorbar()
+        plt.style.use('fivethirtyeight')
         plt.xlabel(str(self.year)+self.hemisphere)
-        plt.ylabel('2016n')
+        plt.ylabel(str(year+1)+'n')
         plt.title('Distances between proteins')
         return dist_mat
 
@@ -55,10 +58,8 @@ rnn = RNN(1,
           )
 # prevs, m0, t = fs.generate_N_random_samples_and_targets(1)
 #(self, N, primer, year, T, fasta_sampler,predict_len)
-fs.get_data()
-# predicted = rnn.batch_dream(len(fs.data_mat['2016n']), '$M', 2016, 10, fs, predict_len=566)
 predicted = fs.data_mat['2016n']
-vis = Visualize(predicted,2017,fs)
+vis = Visualize(2017,fs)
 dist_mat = vis.distance_heatmap()
 plt.show()
 # plt.imshow(dist_mat, cmap='hot', interpolation='nearest')
