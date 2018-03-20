@@ -51,7 +51,7 @@ class Evaluator(object):
         actuals = np.array(actuals.tolist())
         return self.get_dist_matrix(predictions, actuals), predictions, actuals
 
-    def gen_and_compare_year(self, seqs_a, seqs_b):
+    def gen_hamming_over_seq(self, seqs_a, seqs_b):
         hamming_distance = []
         for i in xrange(len(seqs_a)):
             seq_a = seqs_a[0:i]
