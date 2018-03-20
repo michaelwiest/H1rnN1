@@ -8,6 +8,8 @@ import pdb
 def get_idx(char_data):
     word_to_ix = {}
     count = 0
+    char_data = list(char_data)
+    char_data.sort()
     for word in char_data:
         if word not in word_to_ix:
             word_to_ix[word] = count
