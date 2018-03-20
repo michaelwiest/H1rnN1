@@ -1,6 +1,7 @@
 from fasta_sampler_v2 import *
 from RNN_v2 import *
 import scipy
+import IPython
 '''
 Usage is:
 E = Evaluator(fs, model)
@@ -49,3 +50,12 @@ class Evaluator(object):
         actuals = df[df['year'] == year + 1].sample(num_samples)['seq_list'].values
         actuals = np.array(actuals.tolist())
         return self.get_dist_matrix(predictions, actuals), predictions, actuals
+
+    def gen_and_compare_year(self, seqs_a, seqs_b):
+        hamming_distance = []
+        for i in xrange(len(seqs_a)):
+            seq_a = seqs_a[0:i]
+            seq_b = seqs_b[0:i]
+            current_dist = scipy.spatial.distance.hamming(seqs_a, seqs_b)
+            hamming_distance.append(current_dist)
+        return hamming_distance

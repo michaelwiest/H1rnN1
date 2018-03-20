@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import random
 import pdb
 import numpy as np
