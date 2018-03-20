@@ -334,8 +334,8 @@ class FastaSamplerV2(object):
             to_add = pd.DataFrame(self.df.seq_list.values.tolist(),
                                   index=self.df.index)
 
-            for col in to_add.columns:
-                to_add[col] = to_add[col].astype('category')
+            # for col in to_add.columns:
+            #     to_add[col] = to_add[col].astype('category')
 
             self.df[list(range(self.specified_len))] = to_add
 
@@ -345,6 +345,32 @@ class FastaSamplerV2(object):
             return self.df[list(range(self.specified_len))]
         else:
             return self.df
+
+
+    def get_flu_sequences_for_year(self, year, north=True):
+        w_upper = 5
+        w_lower = 10
+        s_upper = 10
+        s_lower = 5
+        df = self.to_dataframe()
+        if north:
+            df = df[df['hemisphere'] == 'north']
+            sub = df[((df['year'] == year) & (df['month'] <= w_upper)) |
+                     ((df['year'] == year - 1) & (df['month'] >= w_lower))]
+        else:
+            df = df[df['hemisphere'] == 'south']
+            sub = df[((df['year'] == year) & (df['month'] <= s_upper)) &
+                     ((df['year'] == year) & (df['month'] >= s_lower))]
+        return sub[list(range(self.specified_len))]
+
+    def get_count_matrix_from_sequences(self, sequence_array):
+        # to_return = pd.DataFrame(columns=list(self.all_aas),
+        #                          index=list(range(self.specified_len)))
+        df = pd.DataFrame(sequence_array)
+        out = [dict(df[i].value_counts()) for i in list(df.columns.values)]
+        return pd.DataFrame.from_dict(out).fillna(0)
+
+
 
 
 
