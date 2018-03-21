@@ -31,7 +31,7 @@ class Evaluator(object):
     Dreams up a batch of guesses from the model. And compares them to the
     Following year's data (the year for which it would be predicting).
     '''
-    def gen_and_compare_year(self, num_samples, primer, year, temp):
+    def gen_and_compare_year(self, num_samples, primer, year, temp, window_size = 100):
         dollar = False
         if primer.startswith('$'):
             dollar = True
@@ -40,7 +40,7 @@ class Evaluator(object):
         if dollar:
             predict_len += 1
         predictions = self.model.batch_dream(num_samples, primer, year, temp,
-                                             self.fs, predict_len, split=True)
+                                             self.fs, predict_len, split=True, window_size= window_size)
         if dollar:
             predictions = predictions[:, 1:]
         df = self.fs.to_dataframe()
@@ -49,3 +49,14 @@ class Evaluator(object):
         actuals = df[df['year'] == year + 1].sample(num_samples)['seq_list'].values
         actuals = np.array(actuals.tolist())
         return self.get_dist_matrix(predictions, actuals), predictions, actuals
+
+    def compare_dist_with_threshold(self,predictions,actual):
+        # self.fs.get_data()
+        num_samples = len(predictions)
+        dist_mat = get_dist_matrix(predictions, actual)
+        avg_dists = dist_mat.mean(axis=1)
+        perc = []
+        for thresh in np.arrange(.01,1,.01):
+            perc.append((avg_dists < thresh).sum()/float(len(avg_dists)))
+
+        return np.arrange(.01,.1,.01), perc
