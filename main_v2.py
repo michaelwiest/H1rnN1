@@ -46,3 +46,4 @@ train_loss, val_loss = rnn.train(fs, batch_size,
                                  slice_len=seq_len,
                                  slice_incr_perc=slice_incr_perc
                                  )
+print(rnn.batch_dream(5, '$M', 2012, 1, fs, 566))

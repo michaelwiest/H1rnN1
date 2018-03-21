@@ -165,7 +165,7 @@ class RNN(nn.Module):
             '''
             for iterate in range(int(samples_per_epoch / self.batch_size)):
                 # Get the samples and make them cuda.
-                prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
+                prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size,
                                                                                               slice_len=slice_len)
 
                 prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
@@ -253,7 +253,7 @@ class RNN(nn.Module):
         if predict_len is not None:
             for p in range(predict_len):
                 inp = add_cuda_to_variable(predicted, self.use_gpu)
-                output = self.forward(train, inp, reset_hidden=False)[-1]
+                output = self.forward(train, inp, reset_hidden=True)[-1]
                 soft_out = custom_softmax(output.data.squeeze(), T)
                 found_char = flip_coin(soft_out, self.use_gpu)
                 predicted.append(found_char)
@@ -268,7 +268,8 @@ class RNN(nn.Module):
     '''
     def batch_dream(self, N, primer, year, T, fasta_sampler,
                     predict_len, reset=True,
-                    last_char_only=False):
+                    window_size=100,
+                    split = False):
         self.batch_size = N
         samples = np.array(fasta_sampler.generate_N_sample_per_year(N, year))
         prev_observations = [samples[:, 0, :], samples[:, 1, :]]
@@ -285,19 +286,18 @@ class RNN(nn.Module):
         self.seq_len = len(primer)
         if predict_len is not None:
             for p in range(predict_len):
-                if last_char_only:
-                    p = np.array([predicted[:, -1]]).T
-                    inp = add_cuda_to_variable(p, self.use_gpu)
-                else:
-                    inp = add_cuda_to_variable(predicted, self.use_gpu)
+                inp = add_cuda_to_variable(predicted[-window_size:],
+                                           self.use_gpu)
                 # Get a prediction from the model.
                 output = self.forward(train,
                                       inp,
                                       reset_hidden=reset)[-1]
-                soft_out = custom_softmax(output.data.squeeze(), T)
+                soft_out = custom_softmax_batch(output.data.squeeze(), T)
                 found_char = flip_coin_batch(soft_out, self.use_gpu)
                 # Add our predicted characters to the current predictions.
                 predicted = np.concatenate((predicted, found_char), axis=1)
         trans = np.vectorize(fasta_sampler.inverse_vocabulary.get)(predicted).tolist()
-
-        return [''.join(sample) for sample in trans]
+        if not split:
+            return np.array([''.join(sample) for sample in trans])
+        else:
+            return np.array(trans)
