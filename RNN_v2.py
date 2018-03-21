@@ -286,7 +286,7 @@ class RNN(nn.Module):
         self.seq_len = len(primer)
         if predict_len is not None:
             for p in range(predict_len):
-                inp = add_cuda_to_variable(predicted[:. -window_size:],
+                inp = add_cuda_to_variable(predicted[:, -window_size:],
                                            self.use_gpu)
                 # Get a prediction from the model.
                 output = self.forward(train,
