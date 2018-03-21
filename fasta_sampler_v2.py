@@ -108,7 +108,7 @@ class FastaSamplerV2(object):
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
 
-    def generate_N_random_samples_and_targets(self, N, group='train',
+    def generate_N_random_samples_ets(self, N, group='train',
                                               slice_len=None,
                                               to_num=True,
                                               shift_index=True):

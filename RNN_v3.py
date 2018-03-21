@@ -64,9 +64,9 @@ class RNN(nn.Module):
     def forward(self, inputs, hidden):
 
         # inputs = [min2, min1] years
-        batch_size = inputs.shape[2]
+        batch_size = inputs.size(2)
         # The number of characters in the input string
-        num_elements = inputs.shape[3]
+        num_elements = inputs.size(3)
 
         # Run through Convolutional layers. Chomp elements at the end because they correspons
         # to convolution with right-side padding, which have "no valuable" information explicitely.
@@ -202,7 +202,7 @@ class RNN(nn.Module):
 
         return train_loss_vec, val_loss_vec
 
-    def daydream(self, primer, T, fasta_sampler, predict_len=None):
+    def daydream1(self, primer, T, fasta_sampler, predict_len=None):
 
         # ex = fs.generate_N_sample_per_year(1, 2012, full=False, to_num=False)[0]
         # train, targets, _ = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, slice_len=slice_len)
@@ -233,7 +233,12 @@ class RNN(nn.Module):
         predictions = self.forward(primer_input, self.hidden)
         predictions = predictions.data.squeeze()
 
+
+        print(predictions.size(1))
+
         soft_out = custom_softmax2(predictions, T)
+        print(soft_out.size(1))
+
         pred_seq = np.argmax(soft_out, axis=1)
 
         strlist = [fasta_sampler.inverse_vocabulary[pred] for pred in pred_seq]

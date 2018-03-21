@@ -44,8 +44,14 @@ train_loss, val_loss = rnn.train(fs, batch_size,
                                  )
 
 
+torch.load('model.pt', map_location=lambda storage, loc: storage)
+
+# rnn.load_state_dict(torch.load('model.pt'))
+# rnn.cuda(device_id=0)
 
 ex = fs.generate_N_sample_per_year(1, 2012, full=False, to_num=False)[0]
-dream = rnn.daydream(ex, 5, fs, predict_len=566)
+dream = rnn.daydream1(rnn, ex, 5, fs, predict_len=566)
+print ('ex:')
+print (ex)
 print(dream)
 print(len(dream))
