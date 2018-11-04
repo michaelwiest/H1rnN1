@@ -12,13 +12,12 @@ class Evaluator(object):
         self.fs = fasta_sampler
         self.model = model
 
-
-    '''
-    Returns a numpy array of the distance between sequences a and b.
-    You should supply a 2d array of characters.
-    Where each row is a sequence ie,['M', 'K', ...]
-    '''
     def get_dist_matrix(self, seqs_a, seqs_b):
+        '''
+        Returns a numpy array of the distance between sequences a and b.
+        You should supply a 2d array of characters.
+        Where each row is a sequence ie,['M', 'K', ...]
+        '''
         if len(seqs_a.shape) == 1:
             seqs_a = np.array([seqs_a]).T
         if len(seqs_b.shape) == 1:
@@ -27,11 +26,12 @@ class Evaluator(object):
         seqs_b = np.vectorize(self.fs.vocabulary.get)(seqs_b)
         return scipy.spatial.distance.cdist(seqs_a, seqs_b, metric='hamming')
 
-    '''
-    Dreams up a batch of guesses from the model. And compares them to the
-    Following year's data (the year for which it would be predicting).
-    '''
+
     def gen_and_compare_year(self, num_samples, primer, year, temp):
+        '''
+        Dreams up a batch of guesses from the model. And compares them to the
+        Following year's data (the year for which it would be predicting).
+        '''
         dollar = False
         if primer.startswith('$'):
             dollar = True

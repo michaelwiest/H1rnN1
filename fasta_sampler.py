@@ -4,7 +4,7 @@ from Bio import SeqIO
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
-from helper_v2 import get_idx
+from helper import get_idx
 from collections import Counter
 from scipy.spatial.distance import *
 
@@ -139,6 +139,7 @@ class FastaSampler(object):
                                                       to_num=to_num)
 
         output = np.array(output)
+        print(output.shape)
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
         min0 = output[:, 2, :]
@@ -185,9 +186,7 @@ class FastaSampler(object):
                 summer_seq.append(self.start + sample['seq'] + self.end)
         return summer_seq
 
-    # If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
-    # supply 2013 as the year. This returns an Nx3 array. Where the pattern
-    # supplied is represented in each row.
+
     def generate_N_sample_per_year(self,
                                    N,
                                    year,
@@ -195,6 +194,11 @@ class FastaSampler(object):
                                    to_num=True,
                                    pattern=['W', 'S', 'W']
                                    ):
+        '''
+        If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
+        supply 2013 as the year. This returns an Nx3 array. Where the pattern
+        supplied is represented in each row.
+        '''
         if year not in self.north.keys() or year not in self.south.keys() or \
                 year + 1 not in self.north.keys() or year - 1 not in self.north.keys():
             raise ValueError('Specified year ({}) is not present in dataset.\n' \
@@ -235,12 +239,13 @@ class FastaSampler(object):
         return to_return
 
 
-    '''
-    Returns a dictionary where the keys are amino acids and the
-    values are a list of the count of that amino acid at the given
-    position across all samples. Way less useful than the funciton below.
-    '''
+
     def get_AA_counts_by_position(self, year, north=True, plot=False):
+        '''
+        Returns a dictionary where the keys are amino acids and the
+        values are a list of the count of that amino acid at the given
+        position across all samples. Way less useful than the funciton below.
+        '''
         if north:
             data = self.north[year]
         else:
@@ -269,10 +274,10 @@ class FastaSampler(object):
         return to_return
 
 
-    '''
-    Get pandas dataframe with counts of each AA by position.
-    '''
     def get_AA_counts_dataframe(self, year, north=True, plot=False):
+        '''
+        Get pandas dataframe with counts of each AA by position.
+        '''
         if north:
             data = self.north[year]
         else:
