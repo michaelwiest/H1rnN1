@@ -34,6 +34,7 @@ class FastaSampler(object):
         vocab_temp = ''.join(list(set(list(v1) + list(v2))))
         self.all_aas = vocab_temp
         self.__generate_vocabulary(vocab_temp)
+        self.df = self.to_dataframe()
 
     def __generate_vocabulary(self, vocabulary):
         t = len(vocabulary)
