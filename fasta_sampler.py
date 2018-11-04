@@ -13,7 +13,7 @@ Class for handling fasta files. It essentially generates random combinations
 of AA sequences from the specified years. Currently can only generate
 AA sequences from a winter > summer > winter combination.
 '''
-class FastaSamplerV2(object):
+class FastaSampler(object):
     def __init__(self, north_fasta, south_fasta,
                  start='$', end='%', delim0='&', delim1='@', pad_char='_',
                  specified_len=566):

@@ -18,7 +18,7 @@ seq_len = 100
 slice_incr_perc = 0.1
 
 # Build the data handler object.
-fs = FastaSamplerV2('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
+fs = FastaSampler('data/HA_n_2010_2018.fa', 'data/HA_s_2010_2018.fa')
 # Assign the validation years.
 fs.set_validation_years([2016, 2017, 2015, 2014, 2013])
 vocab = fs.vocabulary
