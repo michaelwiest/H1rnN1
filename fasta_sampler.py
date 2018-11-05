@@ -149,6 +149,7 @@ class FastaSampler(object):
             first = False
 
         output = output.transpose(1, 0, 2)
+        
         # These are the data two time poitns ago, one time point ago, and currently, respectively.
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
@@ -248,10 +249,11 @@ class FastaSampler(object):
 
             dists = scipy.spatial.distance.cdist(arg_seqs, df_ints,
                                                  metric='hamming')
-            bool_dists = (dists < distance).astype(int)
+            bool_dists = (dists < distance).astype(float)
             samples = []
 
             for sample in range(dists.shape[0]):
+
                 row_probs = bool_dists[sample, :] / bool_dists[sample, :].sum()
                 which_sample = np.random.choice(dists.shape[1], size=1,
                                                 p=row_probs)

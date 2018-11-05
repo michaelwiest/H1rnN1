@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import random
 import pdb
 import numpy as np
+import sys
+import os
 sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 from helper import *
 import csv
