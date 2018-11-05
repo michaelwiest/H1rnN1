@@ -88,7 +88,7 @@ class FastaSampler(object):
             location = desc_split[1].split('/')[1]
             seq = str(f.seq)
             [seqs.add(s) for s in list(seq)]
-
+            seq = self.start + seq + self.end
             template['id'] = f.id
             template['year'] = year
             template['month'] = month
@@ -148,8 +148,8 @@ class FastaSampler(object):
             num_samples_so_far += num_samples
             first = False
 
-        output = output.transpose(1, 2, 0)
-        print(output.shape)
+        output = output.transpose(1, 0, 2)
+        # These are the data two time poitns ago, one time point ago, and currently, respectively.
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
         min0 = output[:, 2, :]
@@ -232,7 +232,7 @@ class FastaSampler(object):
                                                                         possible_summers)
             all_seqs.append(previous_seqs)
 
-        all_seqs = np.array(all_seqs).T
+        all_seqs = np.array(all_seqs)
 
         if to_num:
             to_return = self.char_lookup(all_seqs)
@@ -242,7 +242,7 @@ class FastaSampler(object):
                                            distance=0.002):
 
         if arg_seqs is not None:
-            df_vals = arg_df[list(range(0, self.specified_len))].values
+            df_vals = arg_df[list(range(0, self.specified_len + 2))].values
             df_ints = self.char_lookup(df_vals)
             arg_seqs = self.char_lookup(arg_seqs)
 
@@ -259,7 +259,7 @@ class FastaSampler(object):
             samples = np.array(samples).squeeze(1)
         else:
             sub = arg_df.sample(N)
-            samples = sub[list(range(0, self.specified_len))].values
+            samples = sub[list(range(0, self.specified_len + 2))].values
         return samples
 
 
@@ -366,7 +366,7 @@ class FastaSampler(object):
         # for col in to_add.columns:
         #     to_add[col] = to_add[col].astype('category')
 
-        self.df[list(range(self.specified_len))] = to_add
+        self.df[list(range(self.specified_len + 2))] = to_add
 
         self.df.index = self.df.id
 
