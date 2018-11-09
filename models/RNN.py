@@ -216,6 +216,8 @@ class RNN(nn.Module):
                     for bat in range(self.batch_size):
                         val_loss += loss_function(outputs_val[:, bat, :], targets[:, bat, :].squeeze(1))
                     if self.use_gpu:
+                        val_val = val_loss.data.cpu().numpy()[0] / self.batch_size
+                        print(val_val)
                         val_loss_vec.append(val_loss.data.cpu().numpy()[0] / self.batch_size)
                         train_loss_vec.append(loss.data.cpu().numpy()[0] / self.batch_size)
                     else:
