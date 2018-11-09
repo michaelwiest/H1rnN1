@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import random
 import pdb
 import numpy as np
+import sys
+import os
 sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 from helper import *
 import csv
@@ -108,9 +110,7 @@ class RNN(nn.Module):
         conv_output = self.lin2(conv_output.transpose(0, 2)).transpose(0, 2)
         if reset_hidden:
             self._set_hiden_to_conv(conv_output)
-        print(aa_string.size())
         aa_string = aa_string.transpose(0, 1).unsqueeze(-1)
-        print(aa_string.size())
         output, self.hidden = self.lstm(aa_string, (conv_output.contiguous(),
                                                     conv_output.contiguous())
                                         )
@@ -196,7 +196,6 @@ class RNN(nn.Module):
                 optimizer.step()
 
                 if iterate % 1000 == 0:
-                    print('Loss ' + str(loss.data[0] / self.batch_size))
                     prevs, current, targets = fasta_sampler.generate_N_random_samples_and_targets(self.batch_size, group='validation',
                                                                                                   slice_len=slice_len)
                     prevs = [add_cuda_to_variable(p, self.use_gpu) for p in prevs]
@@ -216,9 +215,14 @@ class RNN(nn.Module):
                     val_loss = 0
                     for bat in range(self.batch_size):
                         val_loss += loss_function(outputs_val[:, bat, :], targets[:, bat, :].squeeze(1))
-                    val_loss_vec.append(val_loss.data[0] / self.batch_size)
-                    train_loss_vec.append(loss.data[0] / self.batch_size)
-                    print('Validataion Loss ' + str(val_loss.data[0]/batch_size))
+                    if self.use_gpu:
+                        val_loss_vec.append(val_loss.data.cpu().numpy() / self.batch_size)
+                        train_loss_vec.append(loss.data.cpu().numpy() / self.batch_size)
+                    else:
+                        val_loss_vec.append(val_loss.data.numpy() / self.batch_size)
+                        train_loss_vec.append(loss.data.numpy() / self.batch_size)
+                    print('Validataion Loss ' + str(val_loss_vec[-1]))
+                    print('Loss ' + str(train_loss_vec[-1]))
                 iterate += 1
             print('Completed Epoch ' + str(epoch))
 

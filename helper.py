@@ -20,11 +20,10 @@ def add_cuda_to_variable(data_nums, is_gpu):
     tensor = torch.FloatTensor(data_nums)
     if isinstance(data_nums, list):
         tensor = tensor.unsqueeze_(0)
-    tensor = tensor.unsqueeze_(2)
     if is_gpu:
-        return Variable(tensor.cuda())[:, :, 0]
+        return Variable(tensor.cuda())
     else:
-        return Variable(tensor)[:, :, 0]
+        return Variable(tensor)
 
 # returns prediction based on probabilites
 def flip_coin(probabilities, is_gpu):

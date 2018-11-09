@@ -4,6 +4,7 @@ from Bio import SeqIO
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
+import scipy
 from helper import get_idx
 from collections import Counter
 from scipy.spatial.distance import *
@@ -27,6 +28,7 @@ class FastaSampler(object):
         self.validation_years = None
         self.specified_len = specified_len
         self.handle_files(north_fasta, south_fasta)
+        self.char_lookup = np.vectorize(self.vocabulary.get)
 
     def handle_files(self, north_fasta, south_fasta):
         self.north, v1 = self.__parse_fasta_to_list(north_fasta, 'north')
@@ -34,7 +36,7 @@ class FastaSampler(object):
         vocab_temp = ''.join(list(set(list(v1) + list(v2))))
         self.all_aas = vocab_temp
         self.__generate_vocabulary(vocab_temp)
-        self.df = self.to_dataframe()
+        self.df = self.instantiate_dataframe()
 
     def __generate_vocabulary(self, vocabulary):
         t = len(vocabulary)
@@ -48,9 +50,6 @@ class FastaSampler(object):
         # This is for the zero padding character.
         # self.vocabulary[self.pad_char] = 0
         self.inverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
-
-
-
 
     def __parse_fasta_to_list(self, some_fasta, area):
         fasta_sequences = SeqIO.parse(open(some_fasta),'fasta')
@@ -89,7 +88,7 @@ class FastaSampler(object):
             location = desc_split[1].split('/')[1]
             seq = str(f.seq)
             [seqs.add(s) for s in list(seq)]
-
+            seq = self.start + seq + self.end
             template['id'] = f.id
             template['year'] = year
             template['month'] = month
@@ -111,7 +110,7 @@ class FastaSampler(object):
         return data, ''.join(list(seqs))
 
     def set_validation_years(self, validation):
-        all_years = self.north.keys()
+        all_years = list(set(self.df.year.values))
         self.train_years = list(set(all_years) - set(validation))
         self.validation_years = list(set(all_years) - set(self.train_years))
 
@@ -122,25 +121,36 @@ class FastaSampler(object):
         self.validation_years.sort()
         self.validation_years = self.validation_years[:-1]
 
+        # Update the rows in the dataframe.
+        self.df['train'] = False
+        self.df.loc[self.df.year.isin(self.train_years), 'train'] = True
+
     def generate_N_random_samples_and_targets(self, N, group='train',
                                               slice_len=None,
                                               to_num=True,
                                               shift_index=True):
         if self.train_years is None:
             raise ValueError('Please set train and validation years first')
-        output = []
-
-        while len(output) < N:
-            num_samples = np.random.randint(N - len(output) + 1)
+        num_samples_so_far = 0
+        first = True
+        while num_samples_so_far < N:
+            num_samples = np.random.randint(1, N - num_samples_so_far + 1)
             if group.lower() == 'train':
                 year = self.train_years[np.random.randint(len(self.train_years))]
             elif group.lower() == 'validation':
                 year = self.validation_years[np.random.randint(len(self.validation_years))]
-            output += self.generate_N_sample_per_year(num_samples, year,
-                                                      to_num=to_num)
+            new_vals = self.generate_N_sample_per_year(num_samples, year,
+                                                       to_num=to_num)
+            if first:
+                output = new_vals
+            else:
+                output = np.concatenate((output, new_vals), axis=1)
+            num_samples_so_far += num_samples
+            first = False
 
-        output = np.array(output)
-        print(output.shape)
+        output = output.transpose(1, 0, 2)
+
+        # These are the data two time poitns ago, one time point ago, and currently, respectively.
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
         min0 = output[:, 2, :]
@@ -166,34 +176,13 @@ class FastaSampler(object):
             min0 = min0_slice
         return [min2, min1], min0, target
 
-    def __get_winter_sample(self, N, year, possibles, upper, lower):
-        winter_seq = []
-        while len(winter_seq) < N:
-            ind = np.random.randint(len(possibles))
-            sample = possibles[ind]
-            if (sample['year'] == year and sample['month'] <= upper) or \
-                    (sample['year'] == year - 1 and sample['month'] >= lower):
-                winter_seq.append(self.start + sample['seq'] + self.end)
-        return winter_seq
-
-
-    def __get_summer_sample(self, year, possibles, upper, lower):
-        summer_seq = []
-        while len(summer_seq) < N:
-            ind = np.random.randint(len(possibles))
-            sample = possibles[ind]
-            if (sample['year'] == year and sample['month'] <= s_upper and \
-                    sample['month'] >= s_lower):
-                summer_seq.append(self.start + sample['seq'] + self.end)
-        return summer_seq
-
 
     def generate_N_sample_per_year(self,
                                    N,
                                    year,
                                    full=True,
                                    to_num=True,
-                                   pattern=['W', 'S', 'W']
+                                   pattern=['w', 'w', 'w']
                                    ):
         '''
         If you want samples from the 2012/2013 winter, 2013 summer, and 2014 winter,
@@ -216,28 +205,71 @@ class FastaSampler(object):
         to_return = []
         all_seqs = []
         current_year = year
+        # This are for selecting appropriately close distances.
+        previous_seqs = None
         for i, p in enumerate(pattern):
             if not i == 0 and not (p.lower() == 's' and pattern[i-1].lower() == 'w'):
                 current_year += 1
             if p.lower() == 'w':
-                possible_winters = self.north[current_year] + self.north[current_year - 1]
-                exs = self.__get_winter_sample(N, current_year,
-                                               possible_winters,
-                                               w_upper, w_lower)
+                winters = self.df.loc[self.df.hemisphere == 'north']
+
+                possible_winters = winters.loc[((winters.month <= w_upper) &
+                                               (winters.year == current_year)) |
+                                               ((winters.month >= w_lower) &
+                                               (winters.year == current_year - 1))]
+
+                previous_seqs = self.__get_sequences_within_dist_of_seq(N,
+                                                                        previous_seqs,
+                                                                        possible_winters)
+
             elif p.lower() == 's':
-                possible_summers = self.south[current_year]
-                exs = self.__get_winter_sample(N, current_year,
-                                               possible_summers,
-                                               s_upper, s_lower)
-            all_seqs.append(exs)
-        all_seqs = np.array(all_seqs).T
-        all_seqs = all_seqs.tolist()
+                summers = self.df.loc[self.df.hemisphere == 'south']
+
+                possible_summers = summers.loc[(summers.month <= s_upper) &
+                                               (summers.year == current_year) &
+                                               (summers.month >= s_lower)]
+                previous_seqs = self.__get_sequences_within_dist_of_seq(N,
+                                                                        previous_seqs,
+                                                                        possible_summers)
+            all_seqs.append(previous_seqs)
+
+        all_seqs = np.array(all_seqs)
 
         if to_num:
-            to_return = [[[self.vocabulary[c] for c in characters] for characters in ex] for ex in all_seqs]
-        else:
-            to_return = [[[c for c in characters] for characters in ex] for ex in all_seqs]
+            to_return = self.char_lookup(all_seqs)
         return to_return
+
+    def __get_sequences_within_dist_of_seq(self, N, arg_seqs, arg_df,
+                                           distance_frac=0.5 # Which rank ordered fraction to use as the threshold
+                                           ):
+
+        if arg_seqs is not None:
+            df_vals = arg_df[list(range(0, self.specified_len + 2))].values
+            df_ints = self.char_lookup(df_vals)
+            arg_seqs = self.char_lookup(arg_seqs)
+
+            # These steps here are for picking a reasonable threshold for
+            # closeness between samples. Can't use some shared threshold
+            # because some samples have very little similarity to others.
+            dists = scipy.spatial.distance.cdist(arg_seqs, df_ints,
+                                                 metric='hamming')
+            dists.sort(axis=1)
+            dist_threshs = dists[:, int(distance_frac * dists.shape[1])]
+
+            samples = []
+            for sample in range(dists.shape[0]):
+                bool_dist_row = (dists[sample, :] < dist_threshs[sample]).astype(float)
+
+                row_probs = bool_dist_row / bool_dist_row.sum()
+
+                which_sample = np.random.choice(dists.shape[1], size=1,
+                                                p=row_probs)
+                samples.append(df_vals[which_sample, :])
+            samples = np.array(samples).squeeze(1)
+        else:
+            sub = arg_df.sample(N)
+            samples = sub[list(range(0, self.specified_len + 2))].values
+        return samples
 
 
 
@@ -326,26 +358,28 @@ class FastaSampler(object):
         return hamming(seq0, seq1)
 
 
-    def to_dataframe(self, just_vals=False):
-        if self.df is None:
-            self.df = pd.DataFrame(columns=['id', 'hemisphere',
-                                            'year', 'month',
-                                            'day', 'location',
-                                            'seq', 'seq_list'
-                                            ])
-            for year, vals in self.north.items():
-                self.df = self.df.append(pd.DataFrame(self.north[year]))
-            for year, vals in self.south.items():
-                self.df = self.df.append(pd.DataFrame(self.south[year]))
-            to_add = pd.DataFrame(self.df.seq_list.values.tolist(),
-                                  index=self.df.index)
+    def instantiate_dataframe(self, just_vals=False):
 
-            # for col in to_add.columns:
-            #     to_add[col] = to_add[col].astype('category')
+        self.df = pd.DataFrame(columns=['id', 'hemisphere',
+                                        'year', 'month',
+                                        'day', 'location',
+                                        'seq', 'seq_list'
+                                        ])
+        for year, vals in self.north.items():
+            self.df = self.df.append(pd.DataFrame(self.north[year]))
+        for year, vals in self.south.items():
+            self.df = self.df.append(pd.DataFrame(self.south[year]))
+        to_add = pd.DataFrame(self.df.seq_list.values.tolist(),
+                              index=self.df.index)
 
-            self.df[list(range(self.specified_len))] = to_add
+        # for col in to_add.columns:
+        #     to_add[col] = to_add[col].astype('category')
 
-            self.df.index = self.df.id
+        self.df[list(range(self.specified_len + 2))] = to_add
+
+        self.df.index = self.df.id
+
+        self.df['train'] = False
 
         if just_vals:
             return self.df[list(range(self.specified_len))]
@@ -358,7 +392,7 @@ class FastaSampler(object):
         w_lower = 10
         s_upper = 10
         s_lower = 5
-        df = self.to_dataframe()
+        df = self.df
         if north:
             df = df[df['hemisphere'] == 'north']
             sub = df[((df['year'] == year) & (df['month'] <= w_upper)) |
