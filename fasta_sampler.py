@@ -149,7 +149,7 @@ class FastaSampler(object):
             first = False
 
         output = output.transpose(1, 0, 2)
-        
+
         # These are the data two time poitns ago, one time point ago, and currently, respectively.
         min2 = output[:, 0, :]
         min1 = output[:, 1, :]
@@ -240,21 +240,28 @@ class FastaSampler(object):
         return to_return
 
     def __get_sequences_within_dist_of_seq(self, N, arg_seqs, arg_df,
-                                           distance=0.002):
+                                           distance_frac=0.5 # Which rank ordered fraction to use as the threshold
+                                           ):
 
         if arg_seqs is not None:
             df_vals = arg_df[list(range(0, self.specified_len + 2))].values
             df_ints = self.char_lookup(df_vals)
             arg_seqs = self.char_lookup(arg_seqs)
 
+            # These steps here are for picking a reasonable threshold for
+            # closeness between samples. Can't use some shared threshold
+            # because some samples have very little similarity to others.
             dists = scipy.spatial.distance.cdist(arg_seqs, df_ints,
                                                  metric='hamming')
-            bool_dists = (dists < distance).astype(float)
+            dists.sort(axis=1)
+            dist_threshs = dists[:, int(distance_frac * dists.shape[1])]
+
             samples = []
-
             for sample in range(dists.shape[0]):
+                bool_dist_row = (dists[sample, :] < dist_threshs[sample]).astype(float)
 
-                row_probs = bool_dists[sample, :] / bool_dists[sample, :].sum()
+                row_probs = bool_dist_row / bool_dist_row.sum()
+
                 which_sample = np.random.choice(dists.shape[1], size=1,
                                                 p=row_probs)
                 samples.append(df_vals[which_sample, :])
