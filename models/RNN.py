@@ -216,13 +216,11 @@ class RNN(nn.Module):
                     for bat in range(self.batch_size):
                         val_loss += loss_function(outputs_val[:, bat, :], targets[:, bat, :].squeeze(1))
                     if self.use_gpu:
-                        val_val = val_loss.data.cpu().numpy()[0] / self.batch_size
-                        print(val_val)
-                        val_loss_vec.append(val_loss.data.cpu().numpy()[0] / self.batch_size)
-                        train_loss_vec.append(loss.data.cpu().numpy()[0] / self.batch_size)
+                        val_loss_vec.append(val_loss.data.cpu().numpy() / self.batch_size)
+                        train_loss_vec.append(loss.data.cpu().numpy() / self.batch_size)
                     else:
-                        val_loss_vec.append(val_loss.data.numpy()[0] / self.batch_size)
-                        train_loss_vec.append(loss.data.numpy()[0] / self.batch_size)
+                        val_loss_vec.append(val_loss.data.numpy() / self.batch_size)
+                        train_loss_vec.append(loss.data.numpy() / self.batch_size)
                     print('Validataion Loss ' + str(val_loss_vec[-1]))
                     print('Loss ' + str(train_loss_vec[-1]))
                 iterate += 1
